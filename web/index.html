@@ -71,6 +71,9 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 .usdt-lbl{font-size:13px;color:var(--g500);margin-bottom:8px}
 .usdt-addr{font-family:monospace;font-size:14px;word-break:break-all;color:var(--blue);background:#fff;padding:12px 16px;border-radius:8px;border:1px solid var(--g200);cursor:pointer;transition:background .2s}
 .usdt-addr:hover{background:var(--bbg)}
+.tip-qr-wrap{margin:16px auto 0;max-width:220px}
+.tip-qr{width:100%;height:auto;border-radius:10px;border:2px solid var(--g200);cursor:pointer;transition:transform .2s}
+.tip-qr:hover{transform:scale(1.03)}
 .copy-h{font-size:11px;color:var(--g500);display:block;margin-top:6px;font-family:inherit}
 .c-links{display:flex;justify-content:center;gap:16px;margin-top:20px;flex-wrap:wrap}
 .c-link{padding:10px 24px;border:1px solid var(--g200);border-radius:8px;font-size:14px;color:var(--g700);transition:all .2s}
@@ -171,6 +174,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 <div class="usdt-box">
 <div class="usdt-lbl" data-i18n="tipL">USDT-TRC20 打赏地址</div>
 <div class="usdt-addr" onclick="copyA()" id="tipA">TTYu42MKHtNJXAbuDpeFdoaiwaeZNFdrVT<span class="copy-h" data-i18n="tipC">点击复制</span></div>
+<div class="tip-qr-wrap"><img src="tip-qr.png" alt="USDT TRC-20 QR" class="tip-qr" onclick="copyA()" title="扫码打赏 USDT (TRC-20)"></div>
 </div>
 <div class="c-links">
 <a href="https://yuezhitong.com" target="_blank" class="c-link" data-i18n="cSite">🌐 越智通官网</a>
