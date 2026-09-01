@@ -213,10 +213,10 @@ class ReportGenerator:
             a('未发现高风险信号。')
             a("")
 
-        # Section 5: Suspicious Transactions
-        a('## 5. 最可疑触发交易')
+        # Section 5: Freeze Link Analysis (non-causal)
+        a('## 5. 冻结关联分析（非因果判断）')
         a("")
-        a('**推断**：')
+        a('**链上事实（[E1]）**：')
         a("")
         if self.analyzer.fmt == 'token_transfer' and self.analyzer.cp:
             # Find largest single transfer
