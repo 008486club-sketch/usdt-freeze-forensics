@@ -174,7 +174,7 @@ def ts_to_str(ts_ms: int) -> str:
         return "N/A"
 
 
-def compute_score(trc20: list, account: dict, freeze_flags: list) -> tuple:
+def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str = "") -> tuple:
     """启发式风险评分 0-100（数字越大风险越高）
     规则：
     - 基础 10
@@ -183,9 +183,15 @@ def compute_score(trc20: list, account: dict, freeze_flags: list) -> tuple:
     - 对手方超过 20 个 +10
     - 账户创建 < 90 天 +8
     - 收过诈骗代币 +15
+    - 吉祥号/风险特征标签（疑似博彩/黑产等）+25
     """
     score = 10
     reasons = []
+
+    # 吉祥号/风险特征标签（如 888888 结尾 → 疑似博彩/黑产热钱包）
+    if addr_tag and any(k in addr_tag for k in ("疑似", "高危", "博彩", "马甲", "诈骗")):
+        score += 25
+        reasons.append(f"地址特征：{addr_tag}")
 
     # 大额转入
     big_in = 0
@@ -302,7 +308,7 @@ def build_report(address: str, api_key: str = None) -> dict:
         ))
 
     # 6. 风险评分
-    score, reasons = compute_score(trc20, account, freeze_flags)
+    score, reasons = compute_score(trc20, account, freeze_flags, address_tag(address))
     if is_frozen:
         score = max(score, 95)
         reasons.insert(0, "地址在 Tether 黑名单中（已冻结）")
