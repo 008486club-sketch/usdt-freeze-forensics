@@ -25,13 +25,18 @@ Quy trình điều tra đóng băng USDT trên TRON — xác định thời đi�
 ## 🚀 快速开始
 
 ```bash
+# 方式一：在线检测（推荐客户使用）
+# 启动完整产品（前端+API 一体）
+cd api && python3 -m uvicorn api_server:app --host 0.0.0.0 --port 8902
+# 打开 http://localhost:8902 输入地址即可诊断
+
+# 方式二：CSV 深度分析（推荐取证使用）
 # 1. 从 TronScan 导出地址的交易记录
 #    https://tronscan.org/address/<地址>/transfers → Export CSV
-
-# 2. 用 csv_analyzer.py 做全量统计（待阿兴交付）
-python scripts/csv_analyzer.py TRON-tokenTransfer-<地址>--<时间戳>.csv
-
-# 3. 按 SKILL 工作流解读，生成报告
+# 2. 全量统计
+python3 scripts/csv_analyzer.py TRON-tokenTransfer-<地址>--<时间戳>.csv
+# 3. 生成诊断报告
+python3 scripts/report_generator.py TRON-tokenTransfer-<地址>--<时间戳>.csv --address <地址> -o report.md
 ```
 
 完整方法论见 `docs/WORKFLOW.md`。
@@ -42,17 +47,22 @@ python scripts/csv_analyzer.py TRON-tokenTransfer-<地址>--<时间戳>.csv
 
 ```
 usdt-freeze-forensics/
+├── api/
+│   └── api_server.py            # FastAPI 后端（TronGrid封装+风险评分+静态页）
+├── web/
+│   ├── index.html               # 首页（输入地址诊断）
+│   ├── report.html              # 报告页（评分/时间线/资金流）
+│   └── i18n.js                  # 三语字典（中/越/英）
 ├── docs/
 │   ├── WORKFLOW.md              # 完整取证工作流（口径铁律）
 │   └── CASE-STUDY-202608.md     # 实战案例复盘（脱敏）
 ├── scripts/
-│   ├── csv_analyzer.py          # CSV 全量统计（开发中）
-│   └── report_generator.py      # 报告生成（开发中）
+│   ├── csv_analyzer.py          # CSV 全量统计
+│   ├── tron_api.py              # TronGrid API 封装
+│   └── report_generator.py      # 报告生成
 ├── templates/
 │   └── appeal-letter.md         # Tether 申诉信模板
-└── data/
-    ├── high-risk-tokens.md      # 高风险代币库
-    └── blacklist-db.csv         # 地址结论沉淀
+└── PRODUCT_TASKS.md             # 产品任务卡（三兄弟分工）
 ```
 
 ---
