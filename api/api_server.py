@@ -9,6 +9,7 @@ api_server.py — USDT 冻结取证前端 API 服务器
 import os
 import sys
 import json
+import urllib.request
 from datetime import datetime, timezone
 
 # tron_api.py 在 scripts/ 目录
@@ -25,6 +26,57 @@ from tron_api import TronAPI, USDT_CONTRACT
 
 # 静态文件目录 = web/（与 api/ 同级）
 WEB_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web"))
+
+# ===== USDT 合约黑名单检测（官方 isBlackListed） =====
+_BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+def _base58_decode(s: str) -> bytes:
+    n = 0
+    for ch in s:
+        n = n * 58 + _BASE58.index(ch)
+    full = n.to_bytes((n.bit_length() + 7) // 8 or 1, "big")
+    zeros = 0
+    for ch in s:
+        if ch == "1":
+            zeros += 1
+        else:
+            break
+    return b"\x00" * zeros + full
+
+
+def _tron_addr_hex(addr: str) -> str:
+    """TRON base58 地址 → 20字节 hex（去 41 前缀和 checksum）"""
+    raw = _base58_decode(addr.strip())
+    return raw[1:-4].hex()
+
+
+def check_usdt_blacklist(address: str) -> bool:
+    """调用 USDT 合约 isBlackListed(address) 检测是否被 Tether 冻结（官方方法）"""
+    try:
+        body = _tron_addr_hex(address)
+        param = body.rjust(64, "0")
+        payload = {
+            "owner_address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+            "contract_address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+            "function_selector": "isBlackListed(address)",
+            "parameter": param,
+            "visible": True,
+        }
+        req = urllib.request.Request(
+            "https://api.trongrid.io/wallet/triggerconstantcontract",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
+        results = data.get("constant_result") or []
+        if results:
+            raw = results[0]
+            return raw.endswith("01") or int(raw, 16) == 1
+        return False
+    except Exception:
+        return False
 
 app = FastAPI(title="USDT Freeze Forensics API", version="1.0.0")
 
@@ -54,6 +106,13 @@ class TxRecord(BaseModel):
     flag: bool
 
 
+class TimelineItem(BaseModel):
+    time: str
+    title: str
+    desc: str
+    dot: str  # green/blue/red/gray
+
+
 class ReportResponse(BaseModel):
     address: str
     score: int
@@ -63,6 +122,7 @@ class ReportResponse(BaseModel):
     counterparties: List[Counterparty]
     transactions: List[TxRecord]
     freezeStatus: Optional[dict] = None
+    timeline: List[TimelineItem] = []
     note: str
 
 
@@ -129,6 +189,9 @@ def compute_score(trc20: list, account: dict, freeze_flags: list) -> tuple:
 def build_report(address: str, api_key: str = None) -> dict:
     api = TronAPI(api_key=api_key)
 
+    # 0. 官方合约级黑名单检测（isBlackListed）
+    is_frozen = check_usdt_blacklist(address)
+
     # 1. 账户信息
     account = api.get_account(address)
     if "error" in account:
@@ -140,6 +203,8 @@ def build_report(address: str, api_key: str = None) -> dict:
     # 3. TRC-10（BL/诈骗币检测）
     freeze_flags = []
     scam_tokens = []
+    if is_frozen:
+        freeze_flags.append("BLACKLISTED")
     try:
         trc10 = api.get_trc10(address, limit=50)
         for t in trc10:
@@ -197,8 +262,69 @@ def build_report(address: str, api_key: str = None) -> dict:
 
     # 6. 风险评分
     score, reasons = compute_score(trc20, account, freeze_flags)
+    if is_frozen:
+        score = max(score, 95)
+        reasons.insert(0, "地址在 Tether 黑名单中（已冻结）")
     risk = "high" if score >= 60 else ("mid" if score >= 30 else "low")
 
+    # 7. 真实时间线（从链上数据构建，非 mock）
+    timeline = []
+
+    # 7.1 地址创建
+    if account.get("create_time"):
+        timeline.append(TimelineItem(
+            time=ts_to_str(account.get("create_time", 0)) + " UTC",
+            title="地址创建",
+            desc=f"TRON 地址创建，当前 TRX 余额 {float(account.get('balance', 0)) / 1_000_000:.2f}",
+            dot="green",
+        ))
+
+    # 7.2 正常交易期（从 trc20 数据统计）
+    if trc20:
+        times = [tx.get("block_timestamp", 0) for tx in trc20 if tx.get("block_timestamp")]
+        if times:
+            mn_t = ts_to_str(min(times))
+            mx_t = ts_to_str(max(times))
+            timeline.append(TimelineItem(
+                time=f"{mn_t} ~ {mx_t} UTC",
+                title="交易活跃期",
+                desc=f"最近 {len(trc20)} 笔 USDT 交易，对手方分散（本数据为 TronGrid 最近100笔抽样）",
+                dot="blue",
+            ))
+
+    # 7.3 大额/风险交易
+    big_txs = [tx for tx in trc20 if int(tx.get("value", 0)) / USDT_DECIMALS > 50000]
+    if big_txs:
+        biggest = max(big_txs, key=lambda x: int(x.get("value", 0)))
+        val = int(biggest.get("value", 0)) / USDT_DECIMALS
+        frm = biggest.get("from", "")
+        to = biggest.get("to", "")
+        timeline.append(TimelineItem(
+            time=ts_to_str(biggest.get("block_timestamp", 0)) + " UTC",
+            title="大额资金流动",
+            desc=f"{frm[:6]}...{'→' if frm != address.lower() else '←'} {to[:6]}... 金额 {val:,.2f} USDT",
+            dot="blue",
+        ))
+
+    # 7.4 冻结事件
+    if is_frozen:
+        timeline.append(TimelineItem(
+            time="已冻结（当前状态）",
+            title="地址被 Tether 冻结",
+            desc="USDT 合约 isBlackListed 返回 true，该地址 USDT 无法转出/赎回。冻结解除权在 Tether 及司法机构。",
+            dot="red",
+        ))
+    else:
+        # 7.5 未冻结但有风险
+        if len(big_txs) >= 3 or len(set(t.get("from") for t in trc20)) > 20:
+            timeline.append(TimelineItem(
+                time="当前状态",
+                title="高风险关注",
+                desc="地址存在大额/高频交易，虽未被冻结，但建议做深度分析排查资金来源。",
+                dot="gray",
+            ))
+
+    # 8. 组装响应
     created = ts_to_str(account.get("create_time", 0))
     tx_count = account.get("transactions", len(trc20))
 
@@ -215,6 +341,7 @@ def build_report(address: str, api_key: str = None) -> dict:
             "scamTokens": scam_tokens[:5],
             "reasons": reasons,
         },
+        timeline=timeline,
         note="数据来自 TronGrid 公开 API（最近100笔），仅供参考；如需全量分析请使用 CSV 深度报告。",
     )
 
