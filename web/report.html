@@ -82,6 +82,23 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 .flow-bar:hover{opacity:.85}
 .flow-bar .flow-tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--g900);color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;white-space:nowrap;margin-bottom:6px;z-index:10}
 .flow-bar:hover .flow-tip{display:block}
+/* 桑基图（P1：资金流 左转入/中地址/右转出） */
+.sankey{display:flex;gap:16px;align-items:stretch}
+.sk-col{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.sk-head{font-size:12px;font-weight:700;color:var(--g500);margin-bottom:2px;display:flex;align-items:center;gap:4px}
+.sk-arrow{color:var(--blue)}
+.sk-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.sk-label{flex:0 0 38%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--g700);font-family:monospace}
+.sk-label .cp-tag{font-family:sans-serif}
+.sk-track{flex:1;height:10px;background:var(--g100);border-radius:5px;overflow:hidden}
+.sk-bar{height:100%;border-radius:5px;min-width:2px;transition:width .8s ease}
+.sk-bar.in{background:linear-gradient(90deg,#86efac,#22c55e)}
+.sk-bar.out{background:linear-gradient(90deg,#fca5a5,#ef4444)}
+.sk-amt{flex:0 0 auto;font-weight:700;color:var(--g900);white-space:nowrap}
+.sk-mid{flex:0 0 120px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bbg);border:2px dashed var(--g200);border-radius:10px;padding:12px}
+.sk-addr{font-family:monospace;font-size:12px;color:var(--blue);word-break:break-all;text-align:center;line-height:1.5}
+.sk-empty{color:var(--g500);font-size:12px;padding:6px 0}
+@media(max-width:640px){.sankey{flex-direction:column;gap:12px}.sk-mid{flex:auto;order:-1;padding:8px}.sk-label{flex:0 0 42%}}
 .flow-legend{display:flex;gap:16px;margin-bottom:16px;font-size:13px;color:var(--g700)}
 .flow-legend span::before{content:'';display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
 .flow-legend .leg-in::before{background:var(--grn)}
@@ -255,7 +272,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 </footer>
 
 <div class="toast" id="toast"></div>
-<script src="i18n.js?v=20260901h"></script>
-<script src="report-app.20260901h.js"></script>
+<script src="i18n.js?v=20260901i"></script>
+<script src="report-app.20260901i.js"></script>
 </body>
 </html>
