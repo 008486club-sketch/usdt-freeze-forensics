@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import urllib.request
+import urllib.parse
 
 TOKEN = sys.argv[1]
 REPO = "008486club-sketch/usdt-freeze-forensics"
@@ -33,7 +34,8 @@ def api_request(method, path, body=None):
 
 def get_sha(path):
     """获取远程文件 sha（存在则返回，不存在返回 None）"""
-    status, data = api_request("GET", f"/repos/{REPO}/contents/{path}")
+    enc = urllib.parse.quote(path, safe="/")
+    status, data = api_request("GET", f"/repos/{REPO}/contents/{enc}")
     if status == 200:
         return data.get("sha")
     return None
@@ -46,7 +48,8 @@ def upload_file(local_path, repo_path):
     sha = get_sha(repo_path)
     if sha:
         body["sha"] = sha
-    status, data = api_request("PUT", f"/repos/{REPO}/contents/{repo_path}", body)
+    enc = urllib.parse.quote(repo_path, safe="/")
+    status, data = api_request("PUT", f"/repos/{REPO}/contents/{enc}", body)
     if status in (200, 201):
         print(f"  ✅ {repo_path}")
         return True
