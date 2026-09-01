@@ -8,7 +8,7 @@ const MOCK = { score: null, risk: 'low', counterparties: [], transactions: [] };
 const REPORT_I18N = {
 zh: {
   brand:"USDT 冻结取证",addrLabel:"诊断地址",
-  metaCreated:"创建时间",metaTx:"交易总数",metaFirst:"首笔",metaLast:"末笔",loading:"数据加载中…",emptyFlow:"暂无对手方数据",emptyTx:"暂无交易记录",
+  metaCreated:"创建时间",metaTx:"抽样记录",metaFirst:"抽样首笔",metaLast:"抽样末笔",metaTxSuffix:"笔（TronGrid 最近100笔）",noteSample:"数据来自 TronGrid 最近100笔抽样（非全量）；交易总数/首笔/末笔均为抽样窗口数据；如需全量分析请使用深度报告",loading:"数据加载中…",emptyFlow:"暂无对手方数据",emptyTx:"暂无交易记录",
   riskLabel:"风险评分",verdictHigh:"⚠️ 高风险 — 建议深度分析",verdictMid:"⚡ 中风险 — 建议关注",verdictLow:"✅ 低风险",
   tlTitle:"冻结时间线",
   tl1t:"地址创建",tl1d:"地址创建后开始产生链上交易",
@@ -24,14 +24,13 @@ zh: {
   a2t:"准备 KYC 材料",a2d:"更新交易所 KYC 信息，提供身份证明、地址证明、资金来源说明。确保与链上行为一致。",
   a3t:"提交申诉工单",a3d:"通过交易所官方渠道提交申诉，附上本报告和所有支持材料。保持耐心，跟进处理进度。",
   a4t:"寻求法律支持",a4d:"如申诉被拒，考虑委托专业律师发函或向监管机构投诉。保留所有沟通记录作为证据。",
-  ctaT:"需要专业申诉协助？",ctaS:"我们的团队可以帮您准备材料、撰写文书、全程跟进",ctaBtn:"联系申诉顾问",
   tipL:"USDT-TRC20 打赏地址",tipC:"点击复制",
   footN:"本服务基于区块链公开数据，不提供法律建议。",
   toastCopy:"地址已复制到剪贴板"
 },
 vi: {
   brand:"Điều tra USDT đóng băng",addrLabel:"Địa chỉ chẩn đoán",
-  metaCreated:"Tạo",metaTx:"Tổng GD",metaFirst:"Đầu",metaLast:"Cuối",loading:"Đang tải…",emptyFlow:"Chưa có dữ liệu đối tác",emptyTx:"Chưa có giao dịch",
+  metaCreated:"Tạo",metaTx:"GD mẫu",metaFirst:"Đầu (mẫu)",metaLast:"Cuối (mẫu)",metaTxSuffix:" GD (TronGrid 100 GD gần nhất)",noteSample:"Dữ liệu từ TronGrid lấy mẫu 100 GD gần nhất (không đầy đủ); tổng/đầu/cuối chỉ là cửa sổ mẫu; cần phân tích đầy đủ vui lòng dùng báo cáo chuyên sâu",loading:"Đang tải…",emptyFlow:"Chưa có dữ liệu đối tác",emptyTx:"Chưa có giao dịch",
   riskLabel:"Điểm rủi ro",verdictHigh:"⚠️ Rủi ro cao — Nên phân tích sâu",verdictMid:"⚡ Rủi ro trung bình",verdictLow:"✅ Rủi ro thấp",
   tlTitle:"Dòng thời gian đóng băng",
   tl1t:"Tạo địa chỉ",tl1d:"Tạo địa chỉ, bắt đầu giao dịch trên chuỗi",
@@ -47,14 +46,13 @@ vi: {
   a2t:"Chuẩn bị KYC",a2d:"Cập nhật KYC sàn, cung cấp CMND, bằng địa chỉ, giải trình nguồn tiền.",
   a3t:"Gửi khiếu nại",a3d:"Gửi qua kênh chính thức của sàn, kèm báo cáo và tài liệu.",
   a4t:"Hỗ trợ pháp lý",a4d:"Nếu bị từ chối, xem xét thuê luật sư hoặc khiếu nại cơ quan quản lý.",
-  ctaT:"Cần hỗ trợ khiếu nại?",ctaS:"Đội ngũ chúng tôi sẵn sàng giúp đỡ",ctaBtn:"Liên hệ tư vấn",
-  tipL:"Địa chỉ USDT-TRC20",tipC:"Nhấn sao chép",
+  tipL:"Địa chỉ USDT-TRC20",tipC:"Nhấn để sao chép",
   footN:"Dịch vụ dựa trên dữ liệu blockchain công khai, không phải tư vấn pháp lý.",
   toastCopy:"Đã sao chép địa chỉ"
 },
 en: {
   brand:"USDT Freeze Forensics",addrLabel:"Diagnosed Address",
-  metaCreated:"Created",metaTx:"Total TXs",metaFirst:"First",metaLast:"Last",loading:"Loading…",emptyFlow:"No counterparty data",emptyTx:"No transactions",
+  metaCreated:"Created",metaTx:"Sampled TXs",metaFirst:"First (sampled)",metaLast:"Last (sampled)",metaTxSuffix:" (TronGrid recent 100)",noteSample:"Data from TronGrid sampling of last 100 TXs (not complete); totals/first/last are sampled window only; for full analysis use deep report",loading:"Loading…",emptyFlow:"No counterparty data",emptyTx:"No transactions",
   riskLabel:"Risk Score",verdictHigh:"⚠️ High Risk — Deep analysis recommended",verdictMid:"⚡ Medium Risk — Monitor",verdictLow:"✅ Low Risk",
   tlTitle:"Freeze Timeline",
   tl1t:"Address Created",tl1d:"Address created, on-chain activity begins",
@@ -70,7 +68,6 @@ en: {
   a2t:"Prepare KYC Materials",a2d:"Update exchange KYC, provide ID, address proof, source of funds explanation.",
   a3t:"Submit Appeal Ticket",a3d:"File appeal through official exchange channel with this report and all supporting materials.",
   a4t:"Seek Legal Support",a4d:"If appeal is rejected, consider hiring a lawyer or filing with regulators. Keep all records.",
-  ctaT:"Need Professional Appeal Help?",ctaS:"Our team can prepare documents and follow up for you",ctaBtn:"Contact Appeal Advisor",
   tipL:"USDT-TRC20 Tip Address",tipC:"Click to copy",
   footN:"This service is based on public blockchain data and does not constitute legal advice.",
   toastCopy:"Address copied to clipboard"
@@ -173,6 +170,9 @@ function updateScore(score) {
   const circumference = 2 * Math.PI * 68; /* ~427 */
   const fg = document.getElementById('scoreFg');
   const big = document.getElementById('scoreBig');
+  /* verdict：id 定位优先（不依赖复杂选择器），文案内置兜底（不依赖 i18n 合并成功） */
+  const verdictEl = document.getElementById('verdictBox') || document.querySelector('.score-verdict span');
+  const t = (I18N && I18N[currentLang]) || {};
   /* 加载态：无数据时不显示任何分数（禁止 mock 兜底） */
   if (score == null || isNaN(score)) {
     fg.style.strokeDashoffset = circumference;
@@ -193,14 +193,19 @@ function updateScore(score) {
   big.style.color = color;
   big.textContent = score;
 
-  const t = I18N[currentLang];
-  const verdictEl = document.querySelector('.score-verdict span');
-  if (verdictEl && t[verdictKey]) {
+  /* 兜底文案：即使 i18n 异常也能显示结论，绝不卡在"数据加载中…" */
+  const fallback = {
+    verdictHigh: '⚠️ 高风险 — 建议深度分析',
+    verdictMid: '⚡ 中风险 — 建议关注',
+    verdictLow: '✅ 低风险'
+  };
+  const txt = t[verdictKey] || fallback[verdictKey];
+  if (verdictEl && txt) {
     const bgMap = { verdictHigh: '#fee2e2', verdictMid: '#fef9c3', verdictLow: '#dcfce7' };
     const colorMap = { verdictHigh: '#991b1b', verdictMid: '#854d0e', verdictLow: '#166534' };
     verdictEl.style.background = bgMap[verdictKey];
     verdictEl.style.color = colorMap[verdictKey];
-    verdictEl.textContent = t[verdictKey];
+    verdictEl.textContent = txt;
   }
 }
 
