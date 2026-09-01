@@ -422,10 +422,16 @@ def build_report(address: str, api_key: str = None) -> dict:
             d="若交易所/钱包受限，第一时间联系官方渠道申诉；准备好交易背景证明（合同/聊天记录/物流单据）。",
         ))
     elif score >= 30:
-        action_plan.append(PlanItem(
-            t="关注风险信号",
-            d=f"当前风险评分 {score}/100（中风险）。关注高风险对手方往来，核对近期大额交易。",
-        ))
+        if not trc20 and self_tag:
+            action_plan.append(PlanItem(
+                t="地址特征提示",
+                d=f"该地址暂无 USDT 交易记录（TronGrid 最近100笔为空），风险来自地址特征：{self_tag}。此类吉祥号地址常见于博彩/黑产收款渠道，建议不要使用该地址接收/转出大额资金。",
+            ))
+        else:
+            action_plan.append(PlanItem(
+                t="关注风险信号",
+                d=f"当前风险评分 {score}/100（中风险）。关注高风险对手方往来，核对近期大额交易。",
+            ))
         action_plan.append(PlanItem(
             t="定期自查",
             d="建议每月自查一次地址状态与对手方变化，避免被动卷入风险。",
