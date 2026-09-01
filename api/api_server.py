@@ -122,6 +122,7 @@ class ReportResponse(BaseModel):
     counterparties: List[Counterparty]
     transactions: List[TxRecord]
     freezeStatus: Optional[dict] = None
+    frozen: bool = False
     timeline: List[TimelineItem] = []
     note: str
 
@@ -342,6 +343,7 @@ def build_report(address: str, api_key: str = None) -> dict:
             "scamTokens": scam_tokens[:5],
             "reasons": reasons,
         },
+        frozen=is_frozen,
         timeline=timeline,
         note="数据来自 TronGrid 公开 API（最近100笔抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
     )
