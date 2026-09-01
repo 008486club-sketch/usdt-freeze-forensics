@@ -279,7 +279,7 @@ def build_report(address: str, api_key: str = None) -> dict:
             dot="green",
         ))
 
-    # 7.2 正常交易期（从 trc20 数据统计）
+    # 7.2 抽样交易窗口（从 trc20 数据统计，TronGrid 抽样非全量）
     if trc20:
         times = [tx.get("block_timestamp", 0) for tx in trc20 if tx.get("block_timestamp")]
         if times:
@@ -287,8 +287,8 @@ def build_report(address: str, api_key: str = None) -> dict:
             mx_t = ts_to_str(max(times))
             timeline.append(TimelineItem(
                 time=f"{mn_t} ~ {mx_t} UTC",
-                title="交易活跃期",
-                desc=f"最近 {len(trc20)} 笔 USDT 交易，对手方分散（本数据为 TronGrid 最近100笔抽样）",
+                title="抽样交易窗口",
+                desc=f"TronGrid 最近 {len(trc20)} 笔 USDT 交易抽样（非全量）。冻结仅限制转出，冻结后入账仍可能出现在窗口内。",
                 dot="blue",
             ))
 
@@ -326,7 +326,8 @@ def build_report(address: str, api_key: str = None) -> dict:
 
     # 8. 组装响应
     created = ts_to_str(account.get("create_time", 0))
-    tx_count = account.get("transactions", len(trc20))
+    # txCount = TronGrid 抽样笔数（非全量总数）—— 绝不当"总交易数"展示，前端标签为"抽样记录"
+    tx_count = len(trc20)
 
     return ReportResponse(
         address=address,
@@ -342,7 +343,7 @@ def build_report(address: str, api_key: str = None) -> dict:
             "reasons": reasons,
         },
         timeline=timeline,
-        note="数据来自 TronGrid 公开 API（最近100笔），仅供参考；如需全量分析请使用 CSV 深度报告。",
+        note="数据来自 TronGrid 公开 API（最近100笔抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
     )
 
 
