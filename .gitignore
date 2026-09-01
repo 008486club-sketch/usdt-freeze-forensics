@@ -1,0 +1,13 @@
+# 忽略临时文件与敏感数据
+*.csv.tmp
+*.pyc
+__pycache__/
+.DS_Store
+
+# 真实客户数据绝不上传
+# 若本地有未脱敏 CSV，放入 data/private/ 并保留如下规则：
+data/private/
+*.private.csv
+
+# 打赏地址配置文件（含真实钱包地址）
+config.local.*
