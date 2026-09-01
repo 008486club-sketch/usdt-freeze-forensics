@@ -1,50 +1,26 @@
 /* Report page logic + mock data */
 let currentLang = 'zh';
 
-/* ===== Mock Data ===== */
-const MOCK = {
-  address: 'TYDzsYUEpGYyKbNYR5kFmKjXoEfCw66moo',
-  score: 72,
-  risk: 'high',
-  created: '2024-03-15',
-  txCount: 847,
-  counterparties: [
-    { addr: 'Binance Hot...', inAmt: 125000, outAmt: 98000 },
-    { addr: 'TKnK...x9Qm', inAmt: 15000, outAmt: 0 },
-    { addr: 'Shopee Pay...', inAmt: 67000, outAmt: 45000 },
-    { addr: 'OTC Desk A...', inAmt: 32000, outAmt: 28000 },
-    { addr: 'DeFi Pool...', inAmt: 8000, outAmt: 12000 },
-    { addr: 'Personal B...', inAmt: 5500, outAmt: 3200 }
-  ],
-  transactions: [
-    { time: '2026-01-18 14:05', dir: 'in', amt: 15000, cp: 'TKnK...x9Qm', hash: 'a1b2c3...f47e', flag: true },
-    { time: '2026-01-15 09:30', dir: 'out', amt: 8500, cp: 'Binance Hot...', hash: 'd5e6f7...a82b', flag: false },
-    { time: '2026-01-10 16:22', dir: 'in', amt: 3200, cp: 'Shopee Pay...', hash: 'c9d0e1...b34c', flag: false },
-    { time: '2025-12-28 11:45', dir: 'out', amt: 12000, cp: 'OTC Desk A...', hash: 'f2g3h4...c56d', flag: false },
-    { time: '2025-12-15 08:00', dir: 'in', amt: 6700, cp: 'Shopee Pay...', hash: 'i7j8k9...d78e', flag: false },
-    { time: '2025-11-20 19:33', dir: 'in', amt: 45000, cp: 'Binance Hot...', hash: 'l0m1n2...e90f', flag: false },
-    { time: '2025-10-05 14:18', dir: 'out', amt: 5000, cp: 'DeFi Pool...', hash: 'o3p4q5...f12g', flag: false },
-    { time: '2025-08-12 10:00', dir: 'in', amt: 25000, cp: 'Binance Hot...', hash: 'r6s7t8...g34h', flag: false }
-  ]
-};
+/* 空壳占位：禁止放入任何假数据（曾有 mock 导致用户看到别家地址信息，被麦总当场抓包） */
+const MOCK = { score: null, risk: 'low', counterparties: [], transactions: [] };
 
 /* ===== i18n additions for report ===== */
 const REPORT_I18N = {
 zh: {
   brand:"USDT 冻结取证",addrLabel:"诊断地址",
-  metaCreated:"创建时间：2024-03-15",metaTx:"交易总数：847",metaFirst:"首笔：2024-03-15",metaLast:"末笔：2026-07-22",
+  metaCreated:"创建时间",metaTx:"交易总数",metaFirst:"首笔",metaLast:"末笔",loading:"数据加载中…",emptyFlow:"暂无对手方数据",emptyTx:"暂无交易记录",
   riskLabel:"风险评分",verdictHigh:"⚠️ 高风险 — 建议深度分析",verdictMid:"⚡ 中风险 — 建议关注",verdictLow:"✅ 低风险",
   tlTitle:"冻结时间线",
-  tl1t:"地址创建",tl1d:"首次收到 500 USDT 转入，来源为 Binance 热钱包",
-  tl2t:"正常交易期",tl2d:"累计 623 笔交易，主要为电商收款和 OTC 兑换，对手方分散",
-  tl3t:"高风险转入",tl3d:"收到来自 TKnK...x9Qm 的 15,000 USDT，该地址已被标记为涉案地址",
+  tl1t:"地址创建",tl1d:"地址创建后开始产生链上交易",
+  tl2t:"正常交易期",tl2d:"交易活跃期由 API 实时生成",
+  tl3t:"高风险转入",tl3d:"高风险/大额交易由 API 实时生成",
   tl4t:"地址被标记冻结",tl4d:"交易所收到链上风控警报，限制该地址提币和交易",
-  tl5t:"冻结后",tl5d:"地址状态为只读，无法转出资产。共 224 笔后续交易尝试均被拒绝",
+  tl5t:"冻结后",tl5d:"地址被冻结后的状态与后续交易由 API 实时生成",
   flowTitle:"资金流向（TOP 对手方）",legIn:"转入",legOut:"转出",
   txTitle:"关键交易记录",txTime:"时间",txDir:"方向",txAmt:"金额 (USDT)",txCp:"对手方",txHash:"TxHash",
   dirIn:"转入",dirOut:"转出",flagWarn:"⚠ 涉案",
   appealT:"申诉建议",
-  a1t:"收集交易凭证",a1d:"整理与 TKnK...x9Qm 交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。",
+  a1t:"收集交易凭证",a1d:"整理与该地址关联交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。",
   a2t:"准备 KYC 材料",a2d:"更新交易所 KYC 信息，提供身份证明、地址证明、资金来源说明。确保与链上行为一致。",
   a3t:"提交申诉工单",a3d:"通过交易所官方渠道提交申诉，附上本报告和所有支持材料。保持耐心，跟进处理进度。",
   a4t:"寻求法律支持",a4d:"如申诉被拒，考虑委托专业律师发函或向监管机构投诉。保留所有沟通记录作为证据。",
@@ -55,19 +31,19 @@ zh: {
 },
 vi: {
   brand:"Điều tra USDT đóng băng",addrLabel:"Địa chỉ chẩn đoán",
-  metaCreated:"Tạo: 2024-03-15",metaTx:"Tổng GD: 847",metaFirst:"Đầu: 2024-03-15",metaLast:"Cuối: 2026-07-22",
+  metaCreated:"Tạo",metaTx:"Tổng GD",metaFirst:"Đầu",metaLast:"Cuối",loading:"Đang tải…",emptyFlow:"Chưa có dữ liệu đối tác",emptyTx:"Chưa có giao dịch",
   riskLabel:"Điểm rủi ro",verdictHigh:"⚠️ Rủi ro cao — Nên phân tích sâu",verdictMid:"⚡ Rủi ro trung bình",verdictLow:"✅ Rủi ro thấp",
   tlTitle:"Dòng thời gian đóng băng",
-  tl1t:"Tạo địa chỉ",tl1d:"Nhận 500 USDT đầu tiên từ ví nóng Binance",
-  tl2t:"Giao dịch bình thường",tl2d:"623 giao dịch, chủ yếu thương mại điện tử và OTC",
-  tl3t:"Chuyển tiền rủi ro cao",tl3d:"Nhận 15.000 USDT từ TKnK...x9Qm, địa chỉ bị đánh dấu liên quan vụ án",
+  tl1t:"Tạo địa chỉ",tl1d:"Tạo địa chỉ, bắt đầu giao dịch trên chuỗi",
+  tl2t:"Giao dịch bình thường",tl2d:"Giai đoạn giao dịch được tạo tự động từ API",
+  tl3t:"Chuyển tiền rủi ro cao",tl3d:"Giao dịch rủi ro được tạo tự động từ API",
   tl4t:"Địa chỉ bị đóng băng",tl4d:"Sàn nhận cảnh báo rủi ro, hạn chế rút và giao dịch",
-  tl5t:"Sau đóng băng",tl5d:"Chỉ đọc, không thể chuyển. 224 lần thử bị từ chối",
+  tl5t:"Sau đóng băng",tl5d:"Trạng thái sau đóng băng được tạo tự động từ API",
   flowTitle:"Dòng tiền (TOP đối tác)",legIn:"Chuyển vào",legOut:"Chuyển ra",
   txTitle:"Giao dịch quan trọng",txTime:"Thời gian",txDir:"Hướng",txAmt:"Số tiền (USDT)",txCp:"Đối tác",txHash:"TxHash",
   dirIn:"Vào",dirOut:"Ra",flagWarn:"⚠ Liên quan",
   appealT:"Gợi ý khiếu nại",
-  a1t:"Thu thập chứng từ",a1d:"Tổng hợp đầy đủ giao dịch với TKnK...x9Qm: chat, hợp đồng, hóa đơn, vận đơn.",
+  a1t:"Thu thập chứng từ",a1d:"Tổng hợp đầy đủ giao dịch với đối tác liên quan: chat, hợp đồng, hóa đơn, vận đơn.",
   a2t:"Chuẩn bị KYC",a2d:"Cập nhật KYC sàn, cung cấp CMND, bằng địa chỉ, giải trình nguồn tiền.",
   a3t:"Gửi khiếu nại",a3d:"Gửi qua kênh chính thức của sàn, kèm báo cáo và tài liệu.",
   a4t:"Hỗ trợ pháp lý",a4d:"Nếu bị từ chối, xem xét thuê luật sư hoặc khiếu nại cơ quan quản lý.",
@@ -78,19 +54,19 @@ vi: {
 },
 en: {
   brand:"USDT Freeze Forensics",addrLabel:"Diagnosed Address",
-  metaCreated:"Created: 2024-03-15",metaTx:"Total TXs: 847",metaFirst:"First: 2024-03-15",metaLast:"Last: 2026-07-22",
+  metaCreated:"Created",metaTx:"Total TXs",metaFirst:"First",metaLast:"Last",loading:"Loading…",emptyFlow:"No counterparty data",emptyTx:"No transactions",
   riskLabel:"Risk Score",verdictHigh:"⚠️ High Risk — Deep analysis recommended",verdictMid:"⚡ Medium Risk — Monitor",verdictLow:"✅ Low Risk",
   tlTitle:"Freeze Timeline",
-  tl1t:"Address Created",tl1d:"First received 500 USDT from Binance hot wallet",
-  tl2t:"Normal Trading Period",tl2d:"623 transactions, mainly e-commerce and OTC, diverse counterparties",
-  tl3t:"High-risk Inflow",tl3d:"Received 15,000 USDT from TKnK...x9Qm, flagged as involved address",
+  tl1t:"Address Created",tl1d:"Address created, on-chain activity begins",
+  tl2t:"Normal Trading Period",tl2d:"Trading period generated live from API",
+  tl3t:"High-risk Inflow",tl3d:"Risk transactions generated live from API",
   tl4t:"Address Flagged & Frozen",tl4d:"Exchange received on-chain risk alert, restricted withdrawals and trading",
-  tl5t:"Post-freeze",tl5d:"Address is read-only, cannot transfer. 224 subsequent attempts rejected",
+  tl5t:"Post-freeze",tl5d:"Post-freeze status generated live from API",
   flowTitle:"Fund Flow (TOP Counterparties)",legIn:"Inflow",legOut:"Outflow",
   txTitle:"Key Transactions",txTime:"Time",txDir:"Direction",txAmt:"Amount (USDT)",txCp:"Counterparty",txHash:"TxHash",
   dirIn:"IN",dirOut:"OUT",flagWarn:"⚠ Flagged",
   appealT:"Appeal Recommendations",
-  a1t:"Collect Transaction Records",a1d:"Gather complete records with TKnK...x9Qm: chats, contracts, invoices, shipping docs to prove legitimacy.",
+  a1t:"Collect Transaction Records",a1d:"Gather complete records with related counterparties: chats, contracts, invoices, shipping docs to prove legitimacy.",
   a2t:"Prepare KYC Materials",a2d:"Update exchange KYC, provide ID, address proof, source of funds explanation.",
   a3t:"Submit Appeal Ticket",a3d:"File appeal through official exchange channel with this report and all supporting materials.",
   a4t:"Seek Legal Support",a4d:"If appeal is rejected, consider hiring a lawyer or filing with regulators. Keep all records.",
@@ -141,8 +117,12 @@ function copyA() {
 
 function renderFlow() {
   const chart = document.getElementById('flowChart');
-  const maxAmt = Math.max(...MOCK.counterparties.map(c => Math.max(c.inAmt, c.outAmt)));
   const t = I18N[currentLang];
+  if (!MOCK.counterparties || MOCK.counterparties.length === 0) {
+    chart.innerHTML = `<div class="flow-empty">${t.emptyFlow || '暂无对手方数据'}</div>`;
+    return;
+  }
+  const maxAmt = Math.max(...MOCK.counterparties.map(c => Math.max(c.inAmt, c.outAmt))) || 1;
   chart.innerHTML = MOCK.counterparties.map(c => {
     const inW = Math.max((c.inAmt / maxAmt) * 100, c.inAmt > 0 ? 3 : 0);
     const outW = Math.max((c.outAmt / maxAmt) * 100, c.outAmt > 0 ? 3 : 0);
@@ -159,6 +139,10 @@ function renderFlow() {
 function renderTx() {
   const body = document.getElementById('txBody');
   const t = I18N[currentLang];
+  if (!MOCK.transactions || MOCK.transactions.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:16px">${t.emptyTx || '暂无交易记录'}</td></tr>`;
+    return;
+  }
   body.innerHTML = MOCK.transactions.map(tx => {
     const dirClass = tx.dir === 'in' ? 'in' : 'out';
     const dirText = tx.dir === 'in' ? (t.dirIn || 'IN') : (t.dirOut || 'OUT');
@@ -173,11 +157,31 @@ function renderTx() {
   }).join('');
 }
 
+function renderTimeline(items) {
+  const box = document.getElementById('timelineBox');
+  if (!box) return;
+  const dotIcon = { green: '✓', blue: '→', red: '🔒', gray: '…' };
+  box.innerHTML = items.map(it => `
+    <div class="tl-item"><div class="tl-dot ${it.dot || 'blue'}">${dotIcon[it.dot] || '→'}</div>
+      <div class="tl-time">${it.time || ''}</div>
+      <div class="tl-title">${it.title || ''}</div>
+      <div class="tl-desc">${it.desc || ''}</div>
+    </div>`).join('');
+}
+
 function updateScore(score) {
   const circumference = 2 * Math.PI * 68; /* ~427 */
-  const offset = circumference - (score / 100) * circumference;
   const fg = document.getElementById('scoreFg');
   const big = document.getElementById('scoreBig');
+  /* 加载态：无数据时不显示任何分数（禁止 mock 兜底） */
+  if (score == null || isNaN(score)) {
+    fg.style.strokeDashoffset = circumference;
+    fg.setAttribute('stroke', '#9ca3af');
+    big.style.color = '#9ca3af';
+    big.textContent = '--';
+    return;
+  }
+  const offset = circumference - (score / 100) * circumference;
   fg.style.strokeDashoffset = offset;
 
   let color, verdictKey;
@@ -207,16 +211,15 @@ function updateScore(score) {
   const addr = params.get('address');
   if (addr) {
     document.getElementById('reportAddr').textContent = addr;
-    MOCK.address = addr;
   }
 
   /* Detect language */
   const nav = navigator.language || 'zh';
   const lang = nav.startsWith('vi') ? 'vi' : (nav.startsWith('en') && !nav.startsWith('zh')) ? 'en' : 'zh';
 
-  /* Render with mock first (so page never blank) */
+  /* 首屏只渲染空态占位，真实数据来自 API（禁止 mock 兜底——曾有假数据被麦总当场抓包） */
   setLang(lang);
-  updateScore(MOCK.score);
+  updateScore(null);
   renderFlow();
   renderTx();
 
@@ -230,8 +233,16 @@ function updateScore(score) {
           updateScore(data.score);
           if (data.created) {
             document.getElementById('reportAddr').textContent = addr;
-            const meta = document.querySelectorAll('.meta-item span');
-            if (meta.length > 1) meta[1].textContent = data.created;
+            const mc = document.querySelector('[data-meta-created]');
+            if (mc) mc.textContent = data.created;
+            const mtx = document.querySelector('[data-meta-tx]');
+            if (mtx) mtx.textContent = (data.txCount || 0).toLocaleString();
+            if (data.transactions && data.transactions.length) {
+              const mf = document.querySelector('[data-meta-first]');
+              if (mf) mf.textContent = data.transactions[data.transactions.length - 1].time;
+              const ml = document.querySelector('[data-meta-last]');
+              if (ml) ml.textContent = data.transactions[0].time;
+            }
           }
           MOCK.counterparties = data.counterparties || [];
           MOCK.transactions = data.transactions || [];
@@ -239,14 +250,17 @@ function updateScore(score) {
           MOCK.risk = data.risk;
           renderFlow();
           renderTx();
+          if (data.timeline && data.timeline.length) {
+            renderTimeline(data.timeline);
+          }
           if (data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length) {
             console.log('Freeze flags:', data.freezeStatus.flags);
           }
         }
       })
       .catch(err => {
-        console.error('API error (falling back to mock):', err);
-        /* keep mock display */
+        console.error('API error:', err);
+        /* 保持空态占位（"加载中/暂无数据"），不显示任何假数据 */
       });
   }
 })();
