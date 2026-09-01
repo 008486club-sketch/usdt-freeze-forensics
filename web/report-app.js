@@ -119,26 +119,45 @@ function copyA() {
 function renderFlow() {
   const chart = document.getElementById('flowChart');
   const t = I18N[currentLang];
-  if (!MOCK.counterparties || MOCK.counterparties.length === 0) {
+  const cps = MOCK.counterparties || [];
+  if (!cps.length) {
     chart.innerHTML = `<div class="flow-empty">${t.emptyFlow || '暂无对手方数据'}</div>`;
     return;
   }
-  const maxAmt = Math.max(...MOCK.counterparties.map(c => Math.max(c.inAmt, c.outAmt))) || 1;
-  chart.innerHTML = MOCK.counterparties.map(c => {
-    const inW = Math.max((c.inAmt / maxAmt) * 100, c.inAmt > 0 ? 3 : 0);
-    const outW = Math.max((c.outAmt / maxAmt) * 100, c.outAmt > 0 ? 3 : 0);
-    /* 对手方标签徽章（OKLink 借鉴）：已验/特征标签 */
-    const warn = c.tag && (c.tag.indexOf('疑似') >= 0 || c.tag.indexOf('高危') >= 0 || c.tag.indexOf('冻结') >= 0
-      || c.tag.indexOf('马甲') >= 0 || c.tag.indexOf('诈骗') >= 0);
-    const tagHtml = c.tag ? `<span class="cp-tag${warn ? ' warn' : ''}">${c.tag}</span>` : '';
-    return `<div class="flow-row">
-      <div class="flow-label" title="${c.addr}">${c.addr}${tagHtml}</div>
-      <div class="flow-bars">
-        <div class="flow-bar in" style="width:${inW}%"><div class="flow-tip">${t.dirIn || 'IN'} ${c.inAmt.toLocaleString()} USDT</div></div>
-        <div class="flow-bar out" style="width:${outW}%"><div class="flow-tip">${t.dirOut || 'OUT'} ${c.outAmt.toLocaleString()} USDT</div></div>
-      </div>
-    </div>`;
-  }).join('');
+  /* 对手方标签徽章（已验/特征标签） */
+  const tagOf = (c) => {
+    if (!c.tag) return '';
+    const warn = c.tag.indexOf('疑似') >= 0 || c.tag.indexOf('高危') >= 0 || c.tag.indexOf('冻结') >= 0
+      || c.tag.indexOf('马甲') >= 0 || c.tag.indexOf('诈骗') >= 0;
+    return `<span class="cp-tag${warn ? ' warn' : ''}">${c.tag}</span>`;
+  };
+  /* 桑基图：左=转入来源 TOP5 / 中=本地址 / 右=转出去向 TOP5，带宽按金额占比 */
+  const ins = cps.filter(c => c.inAmt > 0).sort((a, b) => b.inAmt - a.inAmt).slice(0, 5);
+  const outs = cps.filter(c => c.outAmt > 0).sort((a, b) => b.outAmt - a.outAmt).slice(0, 5);
+  const maxIn = Math.max(...ins.map(c => c.inAmt), 1);
+  const maxOut = Math.max(...outs.map(c => c.outAmt), 1);
+  const addrEl = document.getElementById('reportAddr');
+  const addrShort = (addrEl && addrEl.textContent || '').slice(0, 12) || '本地址';
+  chart.innerHTML = `
+  <div class="sankey">
+    <div class="sk-col sk-in">
+      <div class="sk-head"><span class="sk-arrow">←</span> ${t.legIn || '转入'}</div>
+      ${ins.map(c => `<div class="sk-row">
+        <div class="sk-label" title="${c.addr}">${c.addr.slice(0, 8)}…${tagOf(c)}</div>
+        <div class="sk-track"><div class="sk-bar in" style="width:${(c.inAmt / maxIn * 100).toFixed(1)}%"></div></div>
+        <div class="sk-amt">${c.inAmt.toLocaleString()}</div>
+      </div>`).join('') || '<div class="sk-empty">—</div>'}
+    </div>
+    <div class="sk-mid"><div class="sk-addr">${addrShort}</div></div>
+    <div class="sk-col sk-out">
+      <div class="sk-head">${t.legOut || '转出'} <span class="sk-arrow">→</span></div>
+      ${outs.map(c => `<div class="sk-row">
+        <div class="sk-amt">${c.outAmt.toLocaleString()}</div>
+        <div class="sk-track"><div class="sk-bar out" style="width:${(c.outAmt / maxOut * 100).toFixed(1)}%"></div></div>
+        <div class="sk-label" title="${c.addr}">${c.addr.slice(0, 8)}…${tagOf(c)}</div>
+      </div>`).join('') || '<div class="sk-empty">—</div>'}
+    </div>
+  </div>`;
 }
 
 function renderTx() {
