@@ -98,11 +98,24 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 .cta-bar p{opacity:.85;margin-bottom:20px;font-size:15px}
 .cta-btn{display:inline-block;padding:14px 40px;background:#fff;color:var(--blue);border-radius:8px;font-weight:700;font-size:16px;cursor:pointer;border:none;transition:transform .2s}
 .cta-btn:hover{transform:scale(1.03)}
+.pay-card{background:linear-gradient(135deg,#fef3c7,#fff7ed);border:2px solid #f59e0b;border-radius:var(--r);padding:28px;margin-top:24px;text-align:center}
+.pay-title{font-size:18px;font-weight:800;color:var(--g900);margin-bottom:8px}
+.pay-price{display:inline-block;background:#f59e0b;color:#fff;padding:4px 14px;border-radius:20px;font-size:15px;margin-left:8px}
+.pay-sub{font-size:13px;color:var(--g700);margin-bottom:16px}
+.pay-steps{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.pay-step{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--g200);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--g700)}
+.ps-n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700}
+.pay-addr{font-family:monospace;font-size:13px;word-break:break-all;color:var(--blue);background:#fff;padding:12px;border-radius:8px;border:1px solid var(--g200);cursor:pointer;max-width:480px;margin:0 auto}
+.pay-qr{max-width:180px}
+.pay-note{font-size:12px;color:var(--g500);margin-top:12px}
 
 /* Tip */
 .tip-box{background:var(--g50);border:2px dashed var(--g200);border-radius:var(--r);padding:24px;text-align:center;margin-bottom:24px}
 .usdt-addr{font-family:monospace;font-size:14px;word-break:break-all;color:var(--blue);background:#fff;padding:12px;border-radius:8px;border:1px solid var(--g200);cursor:pointer}
 .usdt-addr:hover{background:var(--bbg)}
+.tip-qr-wrap{margin:16px auto 0;max-width:220px}
+.tip-qr{width:100%;height:auto;border-radius:10px;border:2px solid var(--g200);cursor:pointer;transition:transform .2s}
+.tip-qr:hover{transform:scale(1.03)}
 .copy-h{font-size:11px;color:var(--g500);display:block;margin-top:6px}
 
 /* Footer */
@@ -144,38 +157,36 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 <div class="score-card" id="scoreCard">
 <div class="score-addr">
   <h2 data-i18n="addrLabel">诊断地址</h2>
-  <div class="addr" id="reportAddr">TYDzsYUEpGYyKbNYR5kFmKjXoEfCw66moo</div>
+  <div class="addr" id="reportAddr">--</div>
   <div class="meta">
-    <span data-i18n="metaCreated">创建时间：2024-03-15</span>
-    <span data-i18n="metaTx">交易总数：847</span>
-    <span data-i18n="metaFirst">首笔：2024-03-15</span>
-    <span data-i18n="metaLast">末笔：2026-07-22</span>
+    <span><span data-i18n="metaCreated">创建时间</span>：<span data-meta-created>--</span></span>
+    <span><span data-i18n="metaTx">交易总数</span>：<span data-meta-tx>--</span></span>
+    <span><span data-i18n="metaFirst">首笔</span>：<span data-meta-first>--</span></span>
+    <span><span data-i18n="metaLast">末笔</span>：<span data-meta-last>--</span></span>
   </div>
 </div>
 <div class="score-ring" id="scoreRing">
   <svg viewBox="0 0 160 160">
     <circle class="bg" cx="80" cy="80" r="68"/>
-    <circle class="fg" id="scoreFg" cx="80" cy="80" r="68" stroke="var(--red)" stroke-dasharray="427" stroke-dashoffset="128"/>
+    <circle class="fg" id="scoreFg" cx="80" cy="80" r="68" stroke="#9ca3af" stroke-dasharray="427" stroke-dashoffset="427"/>
   </svg>
   <div class="score-num">
-    <div class="big" style="color:var(--red)" id="scoreBig">72</div>
+    <div class="big" style="color:#9ca3af" id="scoreBig">--</div>
     <div class="label" data-i18n="riskLabel">风险评分</div>
   </div>
 </div>
 </div>
 <div class="score-verdict" style="margin-top:-20px;margin-bottom:24px">
-  <span style="background:#fee2e2;color:#991b1b" data-i18n="verdictHigh">⚠️ 高风险 — 建议深度分析</span>
+  <span style="background:#e5e7eb;color:#374151" data-i18n="loading">数据加载中…</span>
 </div>
 
 <!-- Timeline -->
 <div class="card">
 <h3>📅 <span data-i18n="tlTitle">冻结时间线</span></h3>
-<div class="timeline">
-  <div class="tl-item"><div class="tl-dot green">✓</div><div class="tl-time">2024-03-15 08:22 UTC</div><div class="tl-title" data-i18n="tl1t">地址创建</div><div class="tl-desc" data-i18n="tl1d">首次收到 500 USDT 转入，来源为 Binance 热钱包</div></div>
-  <div class="tl-item"><div class="tl-dot blue">→</div><div class="tl-time">2024-06 ~ 2025-12</div><div class="tl-title" data-i18n="tl2t">正常交易期</div><div class="tl-desc" data-i18n="tl2d">累计 623 笔交易，主要为电商收款和 OTC 兑换，对手方分散</div></div>
-  <div class="tl-item"><div class="tl-dot red">⚠</div><div class="tl-time">2026-01-18 14:05 UTC</div><div class="tl-title" data-i18n="tl3t">高风险转入</div><div class="tl-desc" data-i18n="tl3d">收到来自 TKnK...x9Qm 的 15,000 USDT，该地址已被标记为涉案地址</div></div>
-  <div class="tl-item"><div class="tl-dot red">🔒</div><div class="tl-time">2026-01-19 02:30 UTC</div><div class="tl-title" data-i18n="tl4t">地址被标记冻结</div><div class="tl-desc" data-i18n="tl4d">交易所收到链上风控警报，限制该地址提币和交易</div></div>
-  <div class="tl-item"><div class="tl-dot gray">…</div><div class="tl-time">2026-01-19 ~ 至今</div><div class="tl-title" data-i18n="tl5t">冻结后</div><div class="tl-desc" data-i18n="tl5d">地址状态为只读，无法转出资产。共 224 笔后续交易尝试均被拒绝</div></div>
+<div class="timeline" id="timelineBox">
+  <div class="tl-item"><div class="tl-dot green">✓</div><div class="tl-time" data-tl-time="1">加载中...</div><div class="tl-title" data-i18n="tl1t">地址创建</div><div class="tl-desc" data-tl-desc="1"></div></div>
+  <div class="tl-item"><div class="tl-dot blue">→</div><div class="tl-time" data-tl-time="2">加载中...</div><div class="tl-title" data-i18n="tl2t">交易活跃期</div><div class="tl-desc" data-tl-desc="2"></div></div>
+  <div class="tl-item"><div class="tl-dot red">🔒</div><div class="tl-time" data-tl-time="3">加载中...</div><div class="tl-title" data-i18n="tl4t">冻结状态</div><div class="tl-desc" data-tl-desc="3"></div></div>
 </div>
 </div>
 
@@ -214,7 +225,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 <div class="card">
 <h3>⚖️ <span data-i18n="appealT">申诉建议</span></h3>
 <ul class="appeal-list">
-  <li><div class="appeal-num">1</div><div class="appeal-text"><strong data-i18n="a1t">收集交易凭证</strong><p data-i18n="a1d">整理与 TKnK...x9Qm 交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。</p></div></li>
+  <li><div class="appeal-num">1</div><div class="appeal-text"><strong data-i18n="a1t">收集交易凭证</strong><p data-i18n="a1d">整理与高风险对手方交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。</p></div></li>
   <li><div class="appeal-num">2</div><div class="appeal-text"><strong data-i18n="a2t">准备 KYC 材料</strong><p data-i18n="a2d">更新交易所 KYC 信息，提供身份证明、地址证明、资金来源说明。确保与链上行为一致。</p></div></li>
   <li><div class="appeal-num">3</div><div class="appeal-text"><strong data-i18n="a3t">提交申诉工单</strong><p data-i18n="a3d">通过交易所官方渠道提交申诉，附上本报告和所有支持材料。保持耐心，跟进处理进度。</p></div></li>
   <li><div class="appeal-num">4</div><div class="appeal-text"><strong data-i18n="a4t">寻求法律支持</strong><p data-i18n="a4d">如申诉被拒，考虑委托专业律师发函或向监管机构投诉。保留所有沟通记录作为证据。</p></div></li>
@@ -226,12 +237,27 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 <h3 data-i18n="ctaT">需要专业申诉协助？</h3>
 <p data-i18n="ctaS">我们的团队可以帮您准备材料、撰写文书、全程跟进</p>
 <button class="cta-btn" data-i18n="ctaBtn">联系申诉顾问</button>
+
+<!-- 升级引导 + USDT 付款卡（2026-09-01 麦总拍板：全部用 USDT TRC-20 收款） -->
+<div class="pay-card" id="payCard">
+  <div class="pay-title">📊 解锁深度分析报告 <span class="pay-price">99 USDT</span></div>
+  <p class="pay-sub">完整资金流向 + 触发交易定位 + 申诉可行性评估（24h 内交付）</p>
+  <div class="pay-steps">
+    <div class="pay-step"><span class="ps-n">1</span> 扫码或转账至下方地址</div>
+    <div class="pay-step"><span class="ps-n">2</span> 截图转账记录</div>
+    <div class="pay-step"><span class="ps-n">3</span> 联系客服交付报告（官网/邮件）</div>
+  </div>
+  <div class="pay-addr" onclick="copyA()">TTYu42MKHtNJXAbuDpeFdoaiwaeZNFdrVT<span class="copy-h" data-i18n="tipC">点击复制</span></div>
+  <div class="tip-qr-wrap pay-qr"><img src="tip-qr.png" alt="USDT TRC-20 QR" class="tip-qr" onclick="copyA()"></div>
+  <div class="pay-note">⚠️ 仅支持 USDT (TRC-20) 网络；转账前请确认网络类型，误转其他网络无法找回</div>
+</div>
 </div>
 
 <!-- Tip -->
 <div class="tip-box">
 <div style="font-size:13px;color:var(--g500);margin-bottom:8px" data-i18n="tipL">USDT-TRC20 打赏地址</div>
 <div class="usdt-addr" onclick="copyA()">TTYu42MKHtNJXAbuDpeFdoaiwaeZNFdrVT<span class="copy-h" data-i18n="tipC">点击复制</span></div>
+<div class="tip-qr-wrap"><img src="tip-qr.png" alt="USDT TRC-20 QR" class="tip-qr" onclick="copyA()" title="扫码打赏 USDT (TRC-20)"></div>
 </div>
 
 </div>
