@@ -143,6 +143,11 @@ class TimelineItem(BaseModel):
     dot: str  # green/blue/red/gray
 
 
+class PlanItem(BaseModel):
+    t: str
+    d: str
+
+
 class ReportResponse(BaseModel):
     address: str
     score: int
@@ -155,6 +160,7 @@ class ReportResponse(BaseModel):
     frozen: bool = False
     tags: List[str] = []
     timeline: List[TimelineItem] = []
+    actionPlan: List[PlanItem] = []
     note: str
 
 
@@ -359,7 +365,72 @@ def build_report(address: str, api_key: str = None) -> dict:
                 dot="gray",
             ))
 
-    # 8. 组装响应
+    # 9. 行动方案（基于本地址真实数据定制，非通用模板）
+    action_plan = []
+    self_tag = address_tag(address)
+    risky_cps = [c for c in counterparties if c.get("tag") and any(
+        k in c["tag"] for k in ("高危", "冻结", "马甲", "诈骗", "博彩"))]
+    big_cps = [c for c in counterparties if c["inAmt"] + c["outAmt"] >= 50000]
+
+    if is_frozen:
+        action_plan.append(PlanItem(
+            t="冻结事实已确认",
+            d=f"官方 USDT 合约 isBlackListed 返回 true，该地址已被 Tether 冻结（风险评分 {score}/100）。冻结解除权在 Tether 及司法机构，链上无法自行解冻。",
+        ))
+        if risky_cps:
+            names = "、".join(c["addr"][:8] + "…" for c in risky_cps[:3])
+            action_plan.append(PlanItem(
+                t="切断高风险资金关联",
+                d=f"本地址与已标记风险地址存在大额往来（如 {names}）。立即停止与这些地址的一切交易，避免新增风险。",
+            ))
+        if big_cps:
+            top = big_cps[0]
+            dom = "转入" if top["inAmt"] >= top["outAmt"] else "转出"
+            action_plan.append(PlanItem(
+                t="定位主要资金往来",
+                d=f"最大对手方 {top['addr'][:8]}… 累计{dom} {max(top['inAmt'], top['outAmt']):,.0f} USDT。梳理与该对手方的交易背景（OTC/贸易/借款），这是申诉的核心证据来源。",
+            ))
+        action_plan.append(PlanItem(
+            t="整理申诉材料",
+            d="按清单准备：①与该地址关联交易的聊天记录/合同/发票/物流单据 ②KYC 材料 ③资金来源说明。证明交易背景真实合法，是申诉关键。",
+        ))
+        action_plan.append(PlanItem(
+            t="警惕二次诈骗",
+            d="Tether 官方不会通过 TG 或链上备注联系你。收到 UNFREEZE/UNLOCK/解冻等假代币或私聊付费解冻，一律是诈骗。",
+        ))
+        action_plan.append(PlanItem(
+            t="预期管理",
+            d="若地址有职业 OTC/高频过桥/高危对手方特征，解冻难度较高，申诉需充分证据并做好长期跟进准备。",
+        ))
+    elif score >= 60:
+        action_plan.append(PlanItem(
+            t="识别风险来源",
+            d=f"当前风险评分 {score}/100（高风险），未被冻结但已被高度关注。检查近期大额交易与高风险对手方往来。",
+        ))
+        action_plan.append(PlanItem(
+            t="立即自查",
+            d="自查资金来源合法性，暂停与疑似黑产地址往来；如涉及 OTC 请保留完整交易凭证。",
+        ))
+        action_plan.append(PlanItem(
+            t="提前准备",
+            d="若交易所/钱包受限，第一时间联系官方渠道申诉；准备好交易背景证明（合同/聊天记录/物流单据）。",
+        ))
+    elif score >= 30:
+        action_plan.append(PlanItem(
+            t="关注风险信号",
+            d=f"当前风险评分 {score}/100（中风险）。关注高风险对手方往来，核对近期大额交易。",
+        ))
+        action_plan.append(PlanItem(
+            t="定期自查",
+            d="建议每月自查一次地址状态与对手方变化，避免被动卷入风险。",
+        ))
+    else:
+        action_plan.append(PlanItem(
+            t="当前状态正常",
+            d=f"风险评分 {score}/100（低风险），未被冻结。正常使用即可，注意不要与疑似黑产地址发生往来。",
+        ))
+
+    # 10. 组装响应
     created = ts_to_str(account.get("create_time", 0))
     # txCount = TronGrid 抽样笔数（非全量总数）—— 绝不当"总交易数"展示，前端标签为"抽样记录"
     tx_count = len(trc20)
@@ -380,6 +451,7 @@ def build_report(address: str, api_key: str = None) -> dict:
         frozen=is_frozen,
         tags=[t for t in [address_tag(address)] if t],
         timeline=timeline,
+        actionPlan=action_plan,
         note="数据来自 TronGrid 公开 API（最近100笔抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
     )
 
