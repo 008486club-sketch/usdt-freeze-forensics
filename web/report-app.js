@@ -212,8 +212,8 @@ function updateScore(score) {
   fg.style.strokeDashoffset = offset;
 
   let color, verdictKey;
-  if (score >= 70) { color = 'var(--red)'; verdictKey = 'verdictHigh'; }
-  else if (score >= 40) { color = 'var(--ylw)'; verdictKey = 'verdictMid'; }
+  if (score >= 60) { color = 'var(--red)'; verdictKey = 'verdictHigh'; }
+  else if (score >= 30) { color = 'var(--ylw)'; verdictKey = 'verdictMid'; }
   else { color = 'var(--grn)'; verdictKey = 'verdictLow'; }
 
   fg.setAttribute('stroke', color);
@@ -332,11 +332,11 @@ function updateScore(score) {
                 <div><div class="pt">${p.t}</div><div class="pd">${p.d}</div></div>
               </div>`).join('');
           }
-          /* 保险：显式设置 verdict（与 riskBanner 同一路径，不依赖 updateScore 内部时序） */
+          /* 保险：显式设置 verdict（与 riskBanner 同一路径，阈值与 risk 统一 60/30） */
           const vb = document.getElementById('verdictBox');
           if (vb && data.score !== undefined) {
             const s = data.score;
-            const key = s >= 70 ? 'verdictHigh' : (s >= 40 ? 'verdictMid' : 'verdictLow');
+            const key = s >= 60 ? 'verdictHigh' : (s >= 30 ? 'verdictMid' : 'verdictLow');
             const t4 = (I18N[currentLang] && I18N[currentLang]) || {};
             const fb2 = { verdictHigh: '⚠️ 高风险 — 建议深度分析', verdictMid: '⚡ 中风险 — 建议关注', verdictLow: '✅ 低风险' };
             const txt2 = t4[key] || fb2[key];
