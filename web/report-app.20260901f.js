@@ -10,6 +10,7 @@ zh: {
   brand:"USDT 冻结取证",addrLabel:"诊断地址",
   metaCreated:"创建时间",metaTx:"抽样记录",metaFirst:"抽样首笔",metaLast:"抽样末笔",metaTxSuffix:"笔（TronGrid 最近100笔）",noteSample:"数据来自 TronGrid 最近100笔抽样（非全量）；交易总数/首笔/末笔均为抽样窗口数据；如需全量分析请使用深度报告",loading:"数据加载中…",emptyFlow:"暂无对手方数据",emptyTx:"暂无交易记录",
   riskLabel:"风险评分",verdictHigh:"⚠️ 高风险 — 建议深度分析",verdictMid:"⚡ 中风险 — 建议关注",verdictLow:"✅ 低风险",
+  riskBannerFrozen:"🔒 该地址已被 Tether 冻结（高风险）",riskBannerHigh:"⚠️ 高风险地址 — 建议深度排查",riskBannerMid:"⚡ 中风险地址 — 建议关注",riskBannerLow:"✅ 低风险地址",
   tlTitle:"冻结时间线",tlTitleFree:"地址活动时间线",
   tl1t:"地址创建",tl1d:"地址创建后开始产生链上交易",
   tl2t:"正常交易期",tl2d:"交易活跃期由 API 实时生成",
@@ -32,6 +33,7 @@ vi: {
   brand:"Điều tra USDT đóng băng",addrLabel:"Địa chỉ chẩn đoán",
   metaCreated:"Tạo",metaTx:"GD mẫu",metaFirst:"Đầu (mẫu)",metaLast:"Cuối (mẫu)",metaTxSuffix:" GD (TronGrid 100 GD gần nhất)",noteSample:"Dữ liệu từ TronGrid lấy mẫu 100 GD gần nhất (không đầy đủ); tổng/đầu/cuối chỉ là cửa sổ mẫu; cần phân tích đầy đủ vui lòng dùng báo cáo chuyên sâu",loading:"Đang tải…",emptyFlow:"Chưa có dữ liệu đối tác",emptyTx:"Chưa có giao dịch",
   riskLabel:"Điểm rủi ro",verdictHigh:"⚠️ Rủi ro cao — Nên phân tích sâu",verdictMid:"⚡ Rủi ro trung bình",verdictLow:"✅ Rủi ro thấp",
+  riskBannerFrozen:"🔒 Địa chỉ đã bị Tether đóng băng (rủi ro cao)",riskBannerHigh:"⚠️ Địa chỉ rủi ro cao — nên kiểm tra sâu",riskBannerMid:"⚡ Rủi ro trung bình — nên theo dõi",riskBannerLow:"✅ Rủi ro thấp",
   tlTitle:"Dòng thời gian đóng băng",tlTitleFree:"Dòng thời gian địa chỉ",
   tl1t:"Tạo địa chỉ",tl1d:"Tạo địa chỉ, bắt đầu giao dịch trên chuỗi",
   tl2t:"Giao dịch bình thường",tl2d:"Giai đoạn giao dịch được tạo tự động từ API",
@@ -54,6 +56,7 @@ en: {
   brand:"USDT Freeze Forensics",addrLabel:"Diagnosed Address",
   metaCreated:"Created",metaTx:"Sampled TXs",metaFirst:"First (sampled)",metaLast:"Last (sampled)",metaTxSuffix:" (TronGrid recent 100)",noteSample:"Data from TronGrid sampling of last 100 TXs (not complete); totals/first/last are sampled window only; for full analysis use deep report",loading:"Loading…",emptyFlow:"No counterparty data",emptyTx:"No transactions",
   riskLabel:"Risk Score",verdictHigh:"⚠️ High Risk — Deep analysis recommended",verdictMid:"⚡ Medium Risk — Monitor",verdictLow:"✅ Low Risk",
+  riskBannerFrozen:"🔒 Address frozen by Tether (high risk)",riskBannerHigh:"⚠️ High-risk address — deep check recommended",riskBannerMid:"⚡ Medium risk — monitor",riskBannerLow:"✅ Low risk",
   tlTitle:"Freeze Timeline",tlTitleFree:"Address Timeline",
   tl1t:"Address Created",tl1d:"Address created, on-chain activity begins",
   tl2t:"Normal Trading Period",tl2d:"Trading period generated live from API",
@@ -123,8 +126,12 @@ function renderFlow() {
   chart.innerHTML = MOCK.counterparties.map(c => {
     const inW = Math.max((c.inAmt / maxAmt) * 100, c.inAmt > 0 ? 3 : 0);
     const outW = Math.max((c.outAmt / maxAmt) * 100, c.outAmt > 0 ? 3 : 0);
+    /* 对手方标签徽章（OKLink 借鉴）：已验/特征标签 */
+    const warn = c.tag && (c.tag.indexOf('疑似') >= 0 || c.tag.indexOf('高危') >= 0 || c.tag.indexOf('冻结') >= 0
+      || c.tag.indexOf('马甲') >= 0 || c.tag.indexOf('诈骗') >= 0);
+    const tagHtml = c.tag ? `<span class="cp-tag${warn ? ' warn' : ''}">${c.tag}</span>` : '';
     return `<div class="flow-row">
-      <div class="flow-label" title="${c.addr}">${c.addr}</div>
+      <div class="flow-label" title="${c.addr}">${c.addr}${tagHtml}</div>
       <div class="flow-bars">
         <div class="flow-bar in" style="width:${inW}%"><div class="flow-tip">${t.dirIn || 'IN'} ${c.inAmt.toLocaleString()} USDT</div></div>
         <div class="flow-bar out" style="width:${outW}%"><div class="flow-tip">${t.dirOut || 'OUT'} ${c.outAmt.toLocaleString()} USDT</div></div>
@@ -192,6 +199,13 @@ function updateScore(score) {
   fg.setAttribute('stroke', color);
   big.style.color = color;
   big.textContent = score;
+
+  /* 风险色块（OKLink 借鉴）：score-card 边框随风险等级变色 */
+  const card = document.getElementById('scoreCard');
+  if (card) {
+    card.classList.remove('risk-high', 'risk-mid', 'risk-low');
+    card.classList.add(score >= 60 ? 'risk-high' : (score >= 30 ? 'risk-mid' : 'risk-low'));
+  }
 
   /* 兜底文案：即使 i18n 异常也能显示结论，绝不卡在"数据加载中…" */
   const fallback = {
@@ -267,6 +281,27 @@ function updateScore(score) {
             const key = frozen ? 'tlTitle' : 'tlTitleFree';
             const t2 = (I18N[currentLang] && I18N[currentLang][key]) || (frozen ? '冻结时间线' : '地址活动时间线');
             tlTitleEl.textContent = t2;
+          }
+          /* 风险横幅（OKLink 借鉴）：冻结/高危/中危/低危分级提示 */
+          const rb = document.getElementById('riskBanner');
+          if (rb) {
+            const t3 = (I18N[currentLang] && I18N[currentLang]) || {};
+            const frozen = data.frozen === true
+              || (data.score !== undefined && data.score >= 90)
+              || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
+            if (frozen) {
+              rb.textContent = t3.riskBannerFrozen || '🔒 该地址已被 Tether 冻结（高风险）';
+              rb.className = 'risk-banner show b-high';
+            } else if (data.score >= 60 || data.risk === 'high') {
+              rb.textContent = t3.riskBannerHigh || '⚠️ 高风险地址 — 建议深度排查';
+              rb.className = 'risk-banner show b-high';
+            } else if (data.score >= 30 || data.risk === 'mid') {
+              rb.textContent = t3.riskBannerMid || '⚡ 中风险地址 — 建议关注';
+              rb.className = 'risk-banner show b-mid';
+            } else {
+              rb.textContent = t3.riskBannerLow || '✅ 低风险地址';
+              rb.className = 'risk-banner show b-low';
+            }
           }
           if (data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length) {
             console.log('Freeze flags:', data.freezeStatus.flags);
