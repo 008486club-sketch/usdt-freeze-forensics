@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDT 冻结取证 | Freeze Forensics</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1a3a6b;--bl:#2563eb;--bbg:#f0f4fa;--red:#dc2626;--grn:#16a34a;--g50:#f9fafb;--g100:#f3f4f6;--g200:#e5e7eb;--g500:#6b7280;--g700:#374151;--g900:#111827;--r:12px;--sh:0 2px 12px rgba(0,0,0,.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--g900);background:#fff;line-height:1.6}
+a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
+.nav{background:#fff;border-bottom:1px solid var(--g200);position:sticky;top:0;z-index:100}
+.nav-in{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--blue)}
+.lang-sw{display:flex;gap:4px}
+.lang-btn{padding:6px 12px;border:1px solid var(--g200);border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:var(--g700);transition:all .2s}
+.lang-btn:hover,.lang-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.hero{background:linear-gradient(135deg,var(--blue),#1e4d8c);color:#fff;padding:72px 20px 56px;text-align:center}
+.hero h1{font-size:clamp(24px,4vw,40px);font-weight:800;margin-bottom:16px;line-height:1.3}
+.hero p{font-size:clamp(15px,2vw,18px);opacity:.88;max-width:600px;margin:0 auto 32px}
+.hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:6px 16px;font-size:13px;margin-bottom:20px}
+.input-sec{max-width:640px;margin:-28px auto 0;padding:0 20px;position:relative;z-index:10}
+.input-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:28px;border:1px solid var(--g200)}
+.input-card label{display:block;font-weight:600;margin-bottom:8px;font-size:15px;color:var(--g700)}
+.input-row{display:flex;gap:12px}
+.input-row input{flex:1;padding:14px 16px;border:2px solid var(--g200);border-radius:8px;font-size:15px;font-family:monospace;transition:border-color .2s;outline:none}
+.input-row input:focus{border-color:var(--bl)}
+.btn-p{padding:14px 28px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn-p:hover{background:#15305a}
+.input-hint{margin-top:10px;font-size:13px;color:var(--g500)}
+.sec{max-width:1100px;margin:0 auto;padding:64px 20px}
+.sec-t{text-align:center;font-size:clamp(22px,3vw,32px);font-weight:700;color:var(--blue);margin-bottom:12px}
+.sec-s{text-align:center;color:var(--g500);font-size:16px;margin-bottom:40px;max-width:600px;margin-left:auto;margin-right:auto}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.tc{background:#fff;border:2px solid var(--g200);border-radius:var(--r);padding:32px 24px;text-align:center;transition:all .3s;position:relative}
+.tc:hover{border-color:var(--bl);box-shadow:var(--sh)}
+.tc.feat{border-color:var(--blue);box-shadow:0 4px 20px rgba(26,58,107,.15)}
+.tc-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;padding:4px 16px;border-radius:12px;font-size:12px;font-weight:600}
+.tc-icon{font-size:40px;margin-bottom:16px}
+.tc-name{font-size:20px;font-weight:700;color:var(--blue);margin-bottom:8px}
+.tc-price{font-size:28px;font-weight:800;margin-bottom:4px}
+.tc-price small{font-size:14px;font-weight:400;color:var(--g500)}
+.tc-desc{font-size:14px;color:var(--g500);margin-bottom:20px}
+.tc-feat{list-style:none;text-align:left;margin-bottom:24px}
+.tc-feat li{padding:8px 0;border-bottom:1px solid var(--g100);font-size:14px;display:flex;align-items:flex-start;gap:8px}
+.tc-feat li::before{content:"✓";color:var(--grn);font-weight:700;flex-shrink:0}
+.t-btn{display:inline-block;padding:12px 32px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;transition:all .2s;border:2px solid var(--blue)}
+.t-btn-o{background:#fff;color:var(--blue)}
+.t-btn-o:hover{background:var(--blue);color:#fff}
+.t-btn-f{background:var(--blue);color:#fff}
+.t-btn-f:hover{background:#15305a}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:40px}
+.step{text-align:center;padding:20px}
+.step-n{width:48px;height:48px;border-radius:50%;background:var(--blue);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin-bottom:16px}
+.step-t{font-weight:600;font-size:16px;margin-bottom:8px}
+.step-d{font-size:14px;color:var(--g500)}
+.trust-bg{background:var(--g50)}
+.cases{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.cc{background:#fff;border-radius:var(--r);padding:24px;box-shadow:var(--sh);border-left:4px solid var(--blue)}
+.cc-tag{display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:600;margin-bottom:12px}
+.cc-tag.ok{background:#dcfce7;color:#166534}
+.cc-tag.wait{background:#fef9c3;color:#854d0e}
+.cc-sum{font-size:14px;color:var(--g700);margin-bottom:12px;line-height:1.7}
+.cc-res{font-size:13px;color:var(--g500);border-top:1px solid var(--g100);padding-top:12px}
+.comp{background:var(--blue);color:#fff;padding:48px 20px;text-align:center}
+.comp p{max-width:700px;margin:0 auto;font-size:15px;opacity:.9;line-height:1.8}
+.comp-ic{display:flex;justify-content:center;gap:32px;margin-top:24px;flex-wrap:wrap}
+.comp-i{display:flex;align-items:center;gap:8px;font-size:14px;opacity:.85}
+.tip-sec{max-width:700px;margin:0 auto;text-align:center}
+.usdt-box{background:var(--g50);border:2px dashed var(--g200);border-radius:var(--r);padding:24px;margin:24px 0}
+.usdt-lbl{font-size:13px;color:var(--g500);margin-bottom:8px}
+.usdt-addr{font-family:monospace;font-size:14px;word-break:break-all;color:var(--blue);background:#fff;padding:12px 16px;border-radius:8px;border:1px solid var(--g200);cursor:pointer;transition:background .2s}
+.usdt-addr:hover{background:var(--bbg)}
+.copy-h{font-size:11px;color:var(--g500);display:block;margin-top:6px;font-family:inherit}
+.c-links{display:flex;justify-content:center;gap:16px;margin-top:20px;flex-wrap:wrap}
+.c-link{padding:10px 24px;border:1px solid var(--g200);border-radius:8px;font-size:14px;color:var(--g700);transition:all .2s}
+.c-link:hover{border-color:var(--blue);color:var(--blue);text-decoration:none}
+.footer{background:var(--g900);color:var(--g500);padding:32px 20px;text-align:center;font-size:13px}
+.footer a{color:var(--g200)}
+@media(max-width:640px){
+.hero{padding:48px 16px 40px}.input-sec{padding:0 16px}.input-row{flex-direction:column}.input-row input{width:100%}.btn-p{width:100%}.sec{padding:40px 16px}.tiers{grid-template-columns:1fr}.tc{padding:24px 20px}.steps{grid-template-columns:1fr 1fr}.cases{grid-template-columns:1fr}.comp-ic{flex-direction:column;align-items:center}.nav-in{padding:10px 16px}.lang-btn{padding:5px 8px;font-size:12px}
+}
+@media(max-width:400px){.steps{grid-template-columns:1fr}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .6s ease-out both}.fu1{animation-delay:.1s}.fu2{animation-delay:.2s}.fu3{animation-delay:.3s}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--g900);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;opacity:0;transition:all .3s;z-index:999;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+<div class="nav-brand"><span>🔍</span><span data-i18n="brand">USDT 冻结取证</span></div>
+<div class="lang-sw"><button class="lang-btn active" onclick="setLang('zh')">中文</button><button class="lang-btn" onclick="setLang('vi')">VI</button><button class="lang-btn" onclick="setLang('en')">EN</button></div>
+</div></nav>
+
+<section class="hero">
+<div class="hero-badge" data-i18n="heroBadge">TRON 链上分析 · 3 分钟出结果</div>
+<h1 data-i18n="heroTitle">你的 USDT 被冻结了吗？<br>输入地址，3 分钟了解原因</h1>
+<p data-i18n="heroSub">基于 TRON 区块链公开数据，智能分析地址冻结原因、资金流向和风险等级。专业团队提供深度报告和申诉代办服务。</p>
+</section>
+
+<div class="input-sec fu"><div class="input-card">
+<label data-i18n="inputLabel">输入 TRON 钱包地址</label>
+<div class="input-row">
+<input type="text" id="addrIn" placeholder="T..." maxlength="34" autocomplete="off" spellcheck="false">
+<button class="btn-p" onclick="startDiag()" data-i18n="inputBtn">开始诊断</button>
+</div>
+<div class="input-hint" data-i18n="inputHint">示例：TYDzsYUEpGYyKbNYR5kFmKjXoEfCw66moo · 免费基础检测，无需注册</div>
+</div></div>
+
+<section class="sec">
+<h2 class="sec-t" data-i18n="howT">如何运作</h2>
+<p class="sec-s" data-i18n="howS">四步完成从诊断到解决</p>
+<div class="steps">
+<div class="step fu"><div class="step-n">1</div><div class="step-t" data-i18n="s1t">输入地址</div><div class="step-d" data-i18n="s1d">粘贴被冻结的 TRON 钱包地址</div></div>
+<div class="step fu fu1"><div class="step-n">2</div><div class="step-t" data-i18n="s2t">智能分析</div><div class="step-d" data-i18n="s2d">系统扫描链上数据，识别风险模式</div></div>
+<div class="step fu fu2"><div class="step-n">3</div><div class="step-t" data-i18n="s3t">查看报告</div><div class="step-d" data-i18n="s3d">获取风险评分、资金流和冻结原因</div></div>
+<div class="step fu fu3"><div class="step-n">4</div><div class="step-t" data-i18n="s4t">申诉解决</div><div class="step-d" data-i18n="s4d">专业团队协助申诉或资产处置</div></div>
+</div>
+</section>
+
+<section style="background:var(--g50);padding:64px 0"><div style="max-width:1100px;margin:0 auto;padding:0 20px">
+<h2 class="sec-t" data-i18n="tiersT">服务方案</h2>
+<p class="sec-s" data-i18n="tiersS">从免费检测到全程代办，按需选择</p>
+<div class="tiers">
+<div class="tc fu">
+<div class="tc-icon">🔎</div><div class="tc-name" data-i18n="t1n">基础检测</div>
+<div class="tc-price" data-i18n="t1p">免费</div><div class="tc-desc" data-i18n="t1d">快速了解地址状态</div>
+<ul class="tc-feat"><li data-i18n="t1f1">冻结状态查询</li><li data-i18n="t1f2">风险评分（0-100）</li><li data-i18n="t1f3">基础地址信息</li><li data-i18n="t1f4">创建时间 + 交易计数</li></ul>
+<button class="t-btn t-btn-o" onclick="startDiag()" data-i18n="t1b">立即检测</button>
+</div>
+<div class="tc feat fu fu1">
+<div class="tc-badge" data-i18n="tBadge">推荐</div>
+<div class="tc-icon">📊</div><div class="tc-name" data-i18n="t2n">深度分析报告</div>
+<div class="tc-price">¥299<small data-i18n="t2u"> ~ ¥999</small></div><div class="tc-desc" data-i18n="t2d">全面了解冻结原因</div>
+<ul class="tc-feat"><li data-i18n="t2f1">完整资金流向图</li><li data-i18n="t2f2">触发冻结的关键交易</li><li data-i18n="t2f3">对手方风险分析</li><li data-i18n="t2f4">冻结时间线还原</li><li data-i18n="t2f5">申诉可行性评估</li></ul>
+<button class="t-btn t-btn-f" onclick="startDiag()" data-i18n="t2b">获取报告</button>
+</div>
+<div class="tc fu fu2">
+<div class="tc-icon">⚖️</div><div class="tc-name" data-i18n="t3n">申诉代办</div>
+<div class="tc-price">¥3,000<small data-i18n="t3u"> ~ ¥10,000</small></div><div class="tc-desc" data-i18n="t3d">全程专业协助</div>
+<ul class="tc-feat"><li data-i18n="t3f1">包含深度分析报告</li><li data-i18n="t3f2">申诉材料准备</li><li data-i18n="t3f3">法律文书撰写</li><li data-i18n="t3f4">全程跟进直到结果</li><li data-i18n="t3f5">一对一顾问支持</li></ul>
+<button class="t-btn t-btn-o" data-i18n="t3b">联系咨询</button>
+</div>
+</div></div></section>
+
+<section class="trust-bg"><div class="sec" style="padding-top:48px;padding-bottom:48px">
+<h2 class="sec-t" data-i18n="casesT">脱敏案例</h2>
+<p class="sec-s" data-i18n="casesS">已帮助多位用户解决 USDT 冻结问题</p>
+<div class="cases">
+<div class="cc fu"><span class="cc-tag ok" data-i18n="c1t">已解决</span><div class="cc-sum" data-i18n="c1s">某跨境电商卖家收到来自高风险地址的 USDT 转账，导致钱包被标记冻结。通过资金流分析证明交易真实性，提交交易所 KYC 材料后成功解冻。</div><div class="cc-res" data-i18n="c1r">📋 深度报告 + 申诉代办 · 处理周期 12 个工作日</div></div>
+<div class="cc fu fu1"><span class="cc-tag ok" data-i18n="c2t">已解决</span><div class="cc-sum" data-i18n="c2s">OTC 场外交易收到的 USDT 涉及链上黑名单地址，资金被交易所风控冻结。通过分析完整交易链路，证明善意取得，协助与交易所合规部门沟通。</div><div class="cc-res" data-i18n="c2r">📋 深度报告 + 法律函件 · 处理周期 18 个工作日</div></div>
+<div class="cc fu fu2"><span class="cc-tag wait" data-i18n="c3t">处理中</span><div class="cc-sum" data-i18n="c3s">DeFi 协议交互后地址被标记，怀疑与链上混币服务有关联。正在进行资金流溯源分析，梳理与混币地址的关联路径。</div><div class="cc-res" data-i18n="c3r">📋 深度分析中 · 预计 5 个工作日出报告</div></div>
+<div class="cc fu fu3"><span class="cc-tag ok" data-i18n="c4t">已解决</span><div class="cc-sum" data-i18n="c4s">越南外贸商户收到含涉案资金的 USDT，被交易所限制提币。通过链上分析证明正常贸易收款，配合提供贸易合同和物流单据后解冻。</div><div class="cc-res" data-i18n="c4r">📋 基础检测 + 深度报告 · 处理周期 8 个工作日</div></div>
+</div></div></section>
+
+<section class="comp">
+<h2 style="font-size:24px;font-weight:700;margin-bottom:16px" data-i18n="compT">合规声明</h2>
+<p data-i18n="compP">本服务仅基于 TRON 区块链公开数据进行分析，不提供法律建议。所有分析结果仅供参考，不构成对任何法律程序的保证。我们严格遵守相关法律法规，不接触、不转移用户资产。</p>
+<div class="comp-ic">
+<div class="comp-i">🔒 <span data-i18n="comp1">数据加密传输</span></div>
+<div class="comp-i">🛡️ <span data-i18n="comp2">不接触用户资产</span></div>
+<div class="comp-i">📋 <span data-i18n="comp3">链上公开数据</span></div>
+<div class="comp-i">⚖️ <span data-i18n="comp4">持牌机构合作</span></div>
+</div>
+</section>
+
+<section class="sec"><div class="tip-sec">
+<h2 class="sec-t" data-i18n="tipT">支持我们</h2>
+<p class="sec-s" data-i18n="tipS">如果服务对您有帮助，欢迎打赏支持</p>
+<div class="usdt-box">
+<div class="usdt-lbl" data-i18n="tipL">USDT-TRC20 打赏地址</div>
+<div class="usdt-addr" onclick="copyA()" id="tipA">TTYu42MKHtNJXAbuDpeFdoaiwaeZNFdrVT<span class="copy-h" data-i18n="tipC">点击复制</span></div>
+</div>
+<div class="c-links">
+<a href="https://yuezhitong.com" target="_blank" class="c-link" data-i18n="cSite">🌐 越智通官网</a>
+<a href="mailto:contact@yuezhitong.com" class="c-link" data-i18n="cMail">📧 邮件咨询</a>
+</div>
+</div></section>
+
+<footer class="footer">
+<p>© 2026 USDT Freeze Forensics · <a href="https://yuezhitong.com" target="_blank">yuezhitong.com</a></p>
+<p style="margin-top:8px" data-i18n="footN">本服务基于区块链公开数据，不提供法律建议。</p>
+</footer>
+
+<div class="toast" id="toast"></div>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
