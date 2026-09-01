@@ -38,7 +38,7 @@ ADDRESS_TAGS = {
     "TGC1t9MbJhx7uKYiQG4SzoafeFz3Jzg1JN": "已冻结·职业OTC",
     "TEDV8rCqycRc1K6BmnyNekv5h1MrpcWSDS": "高危·双向交易对手",
     "TFDMtWVXWtRxDmSe3d8zcsCzSfd332nH87": "高危·OTC热钱包",
-    "TTu3mqjHaUcqcEaX14s2t8VRzCkJkVMs3L": "高危·一次性马甲地址",
+    "TTu3mqjHaUcqcEaX14s2t8VRzCkJkVMs3L": "冻结前重要上游资金对手方（非冻因）",
     "TChHAZ5QN6MdwRc61TqjFziWtgrY888888": "高危·疑似博彩/黑产",
     "TUZPztRsZQMUJVXQYKwEuwdGhzgTGjieuu": "中危·二次诈骗特征",
     "TRug7ZsKi7LjSg2n8A9a2CUFurE6u6HSwb": "中危·冻结标记来源",
