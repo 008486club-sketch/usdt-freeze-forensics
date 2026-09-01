@@ -30,6 +30,35 @@ WEB_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)
 # ===== USDT 合约黑名单检测（官方 isBlackListed） =====
 _BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
+# ===== 地址标签库 v1（已验案例 + 规则特征；交易所地址待可靠数据源后扩展）=====
+# 数据来源：usdt-freeze-forensics 实战案例（friend-boss-freeze-case-202608）
+# 铁律：只放已验地址，绝不编造；具体交易所热钱包清单未核验前不收录
+ADDRESS_TAGS = {
+    "TJeh5fXJttbypanF2FMzgu42yqXnc5BuWw": "已冻结·OTC资金枢纽",
+    "TGC1t9MbJhx7uKYiQG4SzoafeFz3Jzg1JN": "已冻结·职业OTC",
+    "TEDV8rCqycRc1K6BmnyNekv5h1MrpcWSDS": "高危·双向交易对手",
+    "TFDMtWVXWtRxDmSe3d8zcsCzSfd332nH87": "高危·OTC热钱包",
+    "TTu3mqjHaUcqcEaX14s2t8VRzCkJkVMs3L": "高危·一次性马甲地址",
+    "TChHAZ5QN6MdwRc61TqjFziWtgrY888888": "高危·疑似博彩/黑产",
+    "TUZPztRsZQMUJVXQYKwEuwdGhzgTGjieuu": "中危·二次诈骗特征",
+    "TRug7ZsKi7LjSg2n8A9a2CUFurE6u6HSwb": "中危·冻结标记来源",
+    "TYAzzycMgo1s1f6fdAP48Bhbf2Z55ghtqa": "中危·能量租赁服务商",
+    "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t": "USDT 合约",
+}
+
+# 吉祥号特征：博彩/黑产热钱包常见（案例 TChHAZ...888888）
+_SUSPICIOUS_PATTERNS = ("888888", "666666", "999999", "777777")
+
+
+def address_tag(addr: str) -> str:
+    """返回地址标签：已验库精确匹配 → 规则特征 → 空字符串"""
+    if addr in ADDRESS_TAGS:
+        return ADDRESS_TAGS[addr]
+    for pat in _SUSPICIOUS_PATTERNS:
+        if pat in addr:
+            return "疑似博彩/黑产热钱包（特征）"
+    return ""
+
 
 def _base58_decode(s: str) -> bytes:
     n = 0
@@ -95,6 +124,7 @@ class Counterparty(BaseModel):
     addr: str
     inAmt: float
     outAmt: float
+    tag: str = ""
 
 
 class TxRecord(BaseModel):
@@ -123,6 +153,7 @@ class ReportResponse(BaseModel):
     transactions: List[TxRecord]
     freezeStatus: Optional[dict] = None
     frozen: bool = False
+    tags: List[str] = []
     timeline: List[TimelineItem] = []
     note: str
 
@@ -240,6 +271,9 @@ def build_report(address: str, api_key: str = None) -> dict:
         key=lambda x: x["inAmt"] + x["outAmt"],
         reverse=True,
     )[:15]
+    # 对手方标签（已验库/规则特征）
+    for c in counterparties:
+        c["tag"] = address_tag(c["addr"])
 
     # 5. 最近交易
     transactions = []
@@ -344,6 +378,7 @@ def build_report(address: str, api_key: str = None) -> dict:
             "reasons": reasons,
         },
         frozen=is_frozen,
+        tags=[t for t in [address_tag(address)] if t],
         timeline=timeline,
         note="数据来自 TronGrid 公开 API（最近100笔抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
     )
