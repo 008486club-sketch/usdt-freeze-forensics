@@ -1,0 +1,7 @@
+# GitHub Sponsors 配置（越南主体可注册）
+# 文档: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+github: [yuezhi-tong]          # GitHub Sponsors 用户名（待注册后填）
+# ko_fi: username              # 备选：Ko-fi（如需）
+# buy_me_a_coffee: username    # 备选：Buy Me a Coffee（如需）
+custom: ["https://yuezhitong.com/contact"]  # 官网联系页（含商业合作入口）
