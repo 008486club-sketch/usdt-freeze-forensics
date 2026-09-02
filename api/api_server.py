@@ -9,9 +9,12 @@ api_server.py — USDT 冻结取证前端 API 服务器
 import os
 import sys
 import json
+import re
+import tempfile
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
+from collections import defaultdict
 
 # tron_api.py 在 scripts/ 目录
 SCRIPTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts")
@@ -511,6 +514,198 @@ def get_report(address: str = Query(..., description="TRON 地址"), api_key: st
 @app.get("/api/health")
 def health():
     return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
+
+
+# ===== 深度报告（CSV 全量分析，2026-09-01 上线：免费查询 + 上传 CSV 出深度报告） =====
+# 复用 scripts/csv_analyzer.py 的 CsvAnalyzer（全量统计）+ report_generator.py 的 Markdown 生成
+from fastapi import UploadFile, File
+
+MAX_CSV_BYTES = 10 * 1024 * 1024  # 10MB
+
+
+def _md_escape(s: str) -> str:
+    return str(s).replace("|", "\\|").replace("\n", " ")
+
+
+def _analyze_csv_bytes(raw: bytes, target_addr: str = "") -> dict:
+    """用 CsvAnalyzer 对上传的 CSV 做全量分析，返回结构化摘要 + Markdown 报告文本。"""
+    from csv_analyzer import CsvAnalyzer
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tf:
+        tf.write(raw)
+        tmp_path = tf.name
+    try:
+        az = CsvAnalyzer(tmp_path, target_address=target_addr or None)
+        az.read()
+        az.process()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"CSV 解析失败: {e}")
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+    fmt = az.fmt  # 'token_transfer' | 'transaction'
+    rows_n = len(az.rows)
+
+    # 目标地址：未指定时取出现最多的地址
+    if not target_addr:
+        cnt = defaultdict(int)
+        for r in az.rows:
+            cnt[r.get("from", "")] += 1
+            cnt[r.get("to", "")] += 1
+        target_addr = max(cnt, key=cnt.get) if cnt else ""
+    tgt_l = target_addr.lower()
+
+    # 时间范围
+    times = sorted([r.get("blockTime(UTC)", "") for r in az.rows if r.get("blockTime(UTC)")])
+    start = times[0] if times else "?"
+    end = times[-1] if times else "?"
+
+    # ===== 组装 Markdown =====
+    L = []
+    a = L.append
+    a("# USDT 冻结检测 · 深度报告")
+    a("")
+    a(f"**生成时间**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    a(f"**数据来源**: 用户上传 TronScan CSV（{rows_n} 行）")
+    a(f"**时间范围**: {start} ~ {end}")
+    a(f"**目标地址**: {target_addr}")
+    a(f"**CSV 类型**: {'tokenTransfer（资金流）' if fmt == 'token_transfer' else 'transaction（区块交易）'}")
+    a("")
+    a("---")
+    a("")
+
+    # 1. USDT 资金流（token CSV）
+    usdt_rows = [r for r in az.rows if r.get("symbol") == "USDT"
+                 and r.get("tokenAddress", "").strip() == USDT_CONTRACT]
+    a("## 1. USDT 资金流汇总")
+    a("")
+    if usdt_rows:
+        inflow = sum(r["_value"] for r in usdt_rows if r.get("to", "").lower() == tgt_l)
+        outflow = sum(r["_value"] for r in usdt_rows if r.get("from", "").lower() == tgt_l)
+        a(f"| 指标 | 数值 |")
+        a(f"| --- | --- |")
+        a(f"| USDT 交易笔数 | {len(usdt_rows)} |")
+        a(f"| 转入总额 | {inflow:,.2f} USDT |")
+        a(f"| 转出总额 | {outflow:,.2f} USDT |")
+        a(f"| 净额 | {inflow - outflow:,.2f} USDT |")
+        a("")
+        # 双向对手方 TOP10
+        in_c, out_c = defaultdict(float), defaultdict(float)
+        in_n, out_n = defaultdict(int), defaultdict(int)
+        for r in usdt_rows:
+            if r.get("to", "").lower() == tgt_l:
+                f = r.get("from", "")
+                in_c[f] += r["_value"]; in_n[f] += 1
+            if r.get("from", "").lower() == tgt_l:
+                t = r.get("to", "")
+                out_c[t] += r["_value"]; out_n[t] += 1
+        a("### 对手方 TOP10（转入）")
+        a("")
+        a("| 地址 | 笔数 | 金额 (USDT) |")
+        a("| --- | --- | --- |")
+        for addr, v in sorted(in_c.items(), key=lambda x: -x[1])[:10]:
+            a(f"| `{_md_escape(addr)}` | {in_n[addr]} | {v:,.2f} |")
+        a("")
+        a("### 对手方 TOP10（转出）")
+        a("")
+        a("| 地址 | 笔数 | 金额 (USDT) |")
+        a("| --- | --- | --- |")
+        for addr, v in sorted(out_c.items(), key=lambda x: -x[1])[:10]:
+            a(f"| `{_md_escape(addr)}` | {out_n[addr]} | {v:,.2f} |")
+        a("")
+    else:
+        a("本 CSV 未发现 USDT TRC-20 转账（仅统计 `TR7NHqje...` 合约）。")
+        a("")
+
+    # 2. 冻结/诈骗标记
+    a("## 2. 冻结/诈骗标记扫描")
+    a("")
+    marked = {addr: d for addr, d in az.addr_tags.items() if d["freeze_n"] > 0 or d["tags"]}
+    if marked:
+        a(f"发现 **{len(marked)}** 个地址有冻结/BL 标记：")
+        a("")
+        a("| 地址 | BL 次数 | 标签 |")
+        a("| --- | --- | --- |")
+        for addr, d in sorted(marked.items(), key=lambda x: -x[1]["freeze_n"])[:10]:
+            tags = ", ".join(sorted(d["tags"]))
+            a(f"| `{_md_escape(addr)}` | {d['freeze_n']} | {tags} |")
+        a("")
+    else:
+        a("未发现冻结/BL 标记。")
+        a("")
+    if az.scam:
+        a("### 疑似诈骗/解冻代币")
+        a("")
+        a("| 代币 | 笔数 | 金额 |")
+        a("| --- | --- | --- |")
+        for name, d in sorted(az.scam.items(), key=lambda x: -x[1]["cnt"])[:10]:
+            a(f"| `{_md_escape(name)}` | {d['cnt']} | {d['amt']:,.2f} |")
+        a("")
+        a("> ⚠️ UNFREEZE/UNLOCK/UNBANNED 等代币全是骗子空投，**Tether 官方不会用链上备注或 TG 联系你**。")
+        a("")
+
+    # 3. TRC-10 代币
+    if az.trc10:
+        a("## 3. 其他 TRC-10 代币（非 USDT）")
+        a("")
+        a("| 代币 | 笔数 | 金额 |")
+        a("| --- | --- | --- |")
+        for name, d in sorted(az.trc10.items(), key=lambda x: -x[1]["cnt"])[:10]:
+            a(f"| `{_md_escape(name)}` | {d['cnt']} | {d['amt']:,.2f} |")
+        a("")
+
+    # 4. 能量委托（transaction CSV）
+    if fmt == "transaction" and az.dlg["total_n"]:
+        a("## 4. 能量/带宽委托")
+        a("")
+        a(f"- 委托: {az.dlg['freeze_n']} 次")
+        a(f"- 解除: {az.dlg['unfreeze_n']} 次")
+        a(f"- 合计: {az.dlg['total_n']} 次（职业 OTC 特征信号）")
+        a("")
+
+    # 5. 风险提示
+    a("## 5. 风险提示")
+    a("")
+    a("- 本报告基于用户上传的 CSV 全量统计（非抽样），**可复核**。")
+    a("- 结论区分「链上事实」与「推断」：金额/笔数/时间均为链上事实；触发原因等为推断。")
+    a("- **时间邻近 ≠ 冻结因果**：冻结前大额入账 ≠ 冻结原因。")
+    a("- 如需申诉协助，请勿相信任何付费解冻服务；**付费解冻=诈骗**。")
+    a("")
+    a("---")
+    a("")
+    a("*USDT 冻结检测 · 越智通AI决策助手 · 阿智*")
+
+    return {
+        "ok": True,
+        "rows": rows_n,
+        "fmt": fmt,
+        "target": target_addr,
+        "start": start,
+        "end": end,
+        "usdt_n": len(usdt_rows),
+        "usdt_in": sum(r["_value"] for r in usdt_rows if r.get("to", "").lower() == tgt_l) if usdt_rows else 0,
+        "usdt_out": sum(r["_value"] for r in usdt_rows if r.get("from", "").lower() == tgt_l) if usdt_rows else 0,
+        "marked_n": len(marked),
+        "scam_n": len(az.scam),
+        "dlg_n": az.dlg["total_n"],
+        "markdown": "\n".join(L),
+    }
+
+
+@app.post("/api/deep-report")
+async def deep_report(file: UploadFile = File(...), address: str = Query(None, description="目标地址（可选，默认取出现最多的地址）")):
+    """上传 TronScan CSV → 全量深度分析 → 返回结构化摘要 + Markdown 报告。
+    免费使用；报告含打赏指引。"""
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="文件为空")
+    if len(raw) > MAX_CSV_BYTES:
+        raise HTTPException(status_code=400, detail="文件超过 10MB 限制")
+    if not (file.filename or "").lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="请上传 .csv 文件（TronScan 导出格式）")
+    return _analyze_csv_bytes(raw, target_addr=address or "")
 
 
 # 静态文件挂载（放在 API 路由之后，避免覆盖 /api/*）
