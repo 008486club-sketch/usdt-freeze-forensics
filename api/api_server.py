@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import urllib.request
+import urllib.parse
 from datetime import datetime, timezone
 
 # tron_api.py 在 scripts/ 目录
@@ -174,6 +175,28 @@ def ts_to_str(ts_ms: int) -> str:
         return "N/A"
 
 
+# ===== TronScan 辅助信息（补充 TronGrid 缺失的链上活动口径，2026-09-01 教训：TE7jHEK 有 418 笔 TRX 但 0 笔 USDT） =====
+def get_tronscan_activity(address: str) -> dict:
+    """调用 TronScan 官方 API 获取链上活动统计（不替代 USDT 交易源）。
+    用途：当 USDT 交易为 0 时，向用户解释"0 笔 USDT ≠ 地址无活动"——链上可能有 TRX/TRC-10 等其他交易。
+    返回 {total_tx: 链上总交易数, balance: TRX 余额, trc20: 持有的 TRC-20 列表}
+    """
+    try:
+        req = urllib.request.Request(
+            "https://apilist.tronscanapi.com/api/account?address=" + address,
+            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read())
+        return {
+            "total_tx": data.get("totalTransactionCount", 0),
+            "balance": data.get("balance", 0),
+            "trc20": data.get("trc20token_balances") or [],
+        }
+    except Exception:
+        return {}
+
+
 def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str = "") -> tuple:
     """启发式风险评分 0-100（数字越大风险越高）
     规则：
@@ -241,8 +264,14 @@ def build_report(address: str, api_key: str = None) -> dict:
     if "error" in account:
         raise HTTPException(status_code=404, detail=f"地址查询失败: {account['error']}")
 
-    # 2. TRC-20 记录（最近 100 笔）
+    # 2. TRC-20 记录（最近 100 笔 USDT；TronGrid 为权威 USDT 交易源）
+    # 2026-09-01 教训：TE7jHEK 有 418 笔链上交易但全部是 TRX(contractType=2)，USDT=0 是真实状态
+    # —— 不要用 TronScan transfers 回退（其 address 参数不按地址过滤，会混入无关交易）
     trc20 = api.get_trc20(address, limit=100)
+    chain_activity = {}
+    if not trc20:
+        # USDT 0 笔时，补充链上活动口径（TRX/TRC-10 等），解释"0 笔 USDT ≠ 地址无活动"
+        chain_activity = get_tronscan_activity(address)
 
     # 3. TRC-10（BL/诈骗币检测）
     freeze_flags = []
@@ -444,8 +473,14 @@ def build_report(address: str, api_key: str = None) -> dict:
 
     # 10. 组装响应
     created = ts_to_str(account.get("create_time", 0))
-    # txCount = TronGrid 抽样笔数（非全量总数）—— 绝不当"总交易数"展示，前端标签为"抽样记录"
+    # txCount = USDT 抽样笔数（非全量总数；TronGrid 权威 USDT 源，0 就是真 0）
     tx_count = len(trc20)
+
+    note = "数据来自 TronGrid 公开 API（最近100笔 USDT 抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。"
+    # USDT 0 笔但链上有其他活动（TRX/TRC-10）——诚实说明，避免用户误以为系统漏数据
+    if not trc20 and chain_activity.get("total_tx"):
+        note = (f"该地址 USDT (TRC-20) 交易为 0 笔；链上总交易 {chain_activity.get('total_tx')} 笔"
+                f"（TRX 转账/合约交互等，非 USDT）。USDT 冻结检测只统计 USDT，0 笔为真实状态。")
 
     return ReportResponse(
         address=address,
@@ -464,7 +499,7 @@ def build_report(address: str, api_key: str = None) -> dict:
         tags=[t for t in [address_tag(address)] if t],
         timeline=timeline,
         actionPlan=action_plan,
-        note="数据来自 TronGrid 公开 API（最近100笔抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
+        note=note,
     )
 
 
