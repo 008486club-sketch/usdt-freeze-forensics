@@ -294,7 +294,7 @@ function updateScore(score) {
   /* ===== API Integration (real data) ===== */
   if (addr) {
     const apiBase = window.API_BASE || '';
-    fetch(apiBase + '/api/report?address=' + encodeURIComponent(addr))
+    fetch(apiBase + '/api/report?address=' + encodeURIComponent(addr) + '&lang=' + currentLang)
       .then(r => r.json())
       .then(data => {
         if (data && data.score !== undefined) {
