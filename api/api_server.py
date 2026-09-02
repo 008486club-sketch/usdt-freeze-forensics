@@ -601,7 +601,7 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
             d=T["plan_frozen_confirmed_desc"].format(score=score),
         ))
         if risky_cps:
-            names = "、".join(c["addr"][:8] + "…" for c in risky_cps[:3])
+            names = ("、" if lang == "zh" else ", ").join(c["addr"][:8] + "…" for c in risky_cps[:3])
             action_plan.append(PlanItem(
                 t=T["plan_cut_risky"],
                 d=T["plan_cut_risky_desc"].format(names=names),
