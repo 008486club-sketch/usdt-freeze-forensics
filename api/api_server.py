@@ -52,10 +52,51 @@ ADDRESS_TAGS = {
 
 # 已知案例确切冻结时间（深度报告 CSV 全量分析的 BL 标记，证据等级 E3 强关联；官方 isBlackListed 仅给当前状态）
 # 格式: {"地址大写": "YYYY-MM-DD HH:MM:SS"}；时间戳来自 TronScan 导出 CSV 的 BL 标记行
+# 2026-09-02 v2: 主数据源改为链上 USDT 合约 AddedBlackList 事件索引（sync_freeze_index.py 全量同步），
+# 本表仅作索引未同步完成时的回退（链上事件证据等级更高：E1 链上事实）
 FROZEN_AT = {
-    "TJeh5fXJttbypanF2FMzgu42yqXnc5BuWw": "2026-08-08 21:20:36",  # 老板：BL 标记 + 冻结余额实算 484,381.990554
-    "TGC1t9MbJhx7uKYiQG4SzoafeFz3Jzg1JN": "2026-07-01 18:04:03",  # 朋友：BL 标记 61.781241 铁证
+    "TJeh5fXJttbypanF2FMzgu42yqXnc5BuWw": "2026-08-08 21:20:36",  # 老板：链上 AddedBlackList @ 2026-08-08 21:20:36
+    "TGC1t9MbJhx7uKYiQG4SzoafeFz3Jzg1JN": "2026-07-01 18:04:00",  # 朋友：链上 AddedBlackList @ 2026-07-01 18:04:00（修正 CSV 18:04:03）
 }
+
+# SQLite 冻结事件索引（sync_freeze_index.py 维护）：addr_hex(40) -> 冻结/解冻时间
+FREEZE_DB = os.environ.get("FREEZE_DB", "/opt/usdt-forensics/freeze_index.db")
+
+# base58 TRON 地址 → 20字节 hex（去 41 版本 + checksum）
+_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+def _base58_to_hex20(addr: str) -> str:
+    """TRON base58 地址 → 20 字节 hex（40 字符小写），用于匹配合约事件 _user 参数"""
+    n = 0
+    for c in addr:
+        n = n * 58 + _ALPHABET.index(c)
+    raw = n.to_bytes(25, "big")
+    return raw[1:21].hex()
+
+
+def get_frozen_at(address: str) -> str:
+    """返回地址确切冻结时间（YYYY-MM-DD HH:MM:SS UTC）或空串。
+    顺序: SQLite 索引（链上 AddedBlackList E1）→ FROZEN_AT 回退（已知案例）"""
+    # 1) 链上事件索引（对所有用户）
+    try:
+        import sqlite3
+        if os.path.exists(FREEZE_DB):
+            hex20 = _base58_to_hex20(address)
+            conn = sqlite3.connect(FREEZE_DB)
+            row = conn.execute(
+                "SELECT block_ts FROM freeze_events WHERE addr_hex=? AND event_name='AddedBlackList' ORDER BY block_ts ASC LIMIT 1",
+                (hex20,)).fetchone()
+            conn.close()
+            if row:
+                ts_ms = int(row[0])
+                return datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " UTC"
+    except Exception:
+        pass
+    # 2) 静态回退（索引未同步/未收录）
+    fat = FROZEN_AT.get(address)
+    if fat:
+        return fat + " UTC"
+    return ""
 
 # 吉祥号特征：博彩/黑产热钱包常见（案例 TChHAZ...888888）
 _SUSPICIOUS_PATTERNS = ("888888", "666666", "999999", "777777")
@@ -225,7 +266,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_title": "地址被 Tether 冻结",
             "frozen_desc": "USDT 合约 isBlackListed 返回 true，该地址 USDT 无法转出/赎回。冻结解除权在 Tether 及司法机构。",
             "frozen_at_title": "冻结标记出现",
-            "frozen_at_desc": "该地址于 {time} 出现冻结标记（BL），与当前 Tether 黑名单状态一致。来源：深度报告 CSV 全量分析。",
+            "frozen_at_desc": "USDT 合约于 {time} 将该地址加入黑名单（AddedBlackList 链上事件），当前 isBlackListed 仍为 true。冻结解除权在 Tether 及司法机构。",
             "frozen_time_unknown": "（确切冻结时间未收录；可上传 CSV 生成深度报告交叉验证）",
             "cur_status": "当前状态",
             "high_risk_attention": "高风险关注",
@@ -279,7 +320,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_title": "Địa chỉ bị Tether đóng băng",
             "frozen_desc": "Hợp đồng USDT isBlackListed trả true, USDT của địa chỉ này không thể chuyển ra/chuộc. Quyền mở khóa thuộc Tether và cơ quan tư pháp.",
             "frozen_at_title": "Xuất hiện dấu đóng băng",
-            "frozen_at_desc": "Địa chỉ xuất hiện dấu đóng băng (BL) lúc {time}, khớp với trạng thái danh sách đen Tether hiện tại. Nguồn: phân tích CSV báo cáo chuyên sâu.",
+            "frozen_at_desc": "Hợp đồng USDT đưa địa chỉ này vào danh sách đen lúc {time} (sự kiện trên chuỗi AddedBlackList), isBlackListed hiện vẫn true. Quyền mở khóa thuộc Tether và cơ quan tư pháp.",
             "frozen_time_unknown": " (Chưa ghi nhận thời điểm đóng băng chính xác; có thể tải CSV để đối chiếu trong báo cáo chuyên sâu.)",
             "cur_status": "Trạng thái hiện tại",
             "high_risk_attention": "Chú ý rủi ro cao",
@@ -333,7 +374,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_title": "Address frozen by Tether",
             "frozen_desc": "USDT contract isBlackListed returned true; USDT cannot be transferred out/redeemed. Unfreeze authority rests with Tether and judicial bodies.",
             "frozen_at_title": "Freeze Flag Appeared",
-            "frozen_at_desc": "A freeze flag (BL) appeared on this address at {time}, matching its current Tether blacklist status. Source: deep-report CSV full analysis.",
+            "frozen_at_desc": "USDT contract added this address to the blacklist at {time} (on-chain AddedBlackList event); isBlackListed is still true. Unfreeze authority rests with Tether and judicial bodies.",
             "frozen_time_unknown": " (Exact freeze time not recorded; upload a CSV for cross-checking in the deep report.)",
             "cur_status": "Current Status",
             "high_risk_attention": "High-risk Attention",
@@ -586,12 +627,12 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
             dot="blue",
         ))
 
-    # 7.4 冻结事件（确切冻结时间：活库 FROZEN_AT，来源深度报告 CSV 的 BL 标记，E3）
+    # 7.4 冻结事件（确切冻结时间：链上 USDT 合约 AddedBlackList 事件索引 E1 → FROZEN_AT 回退）
+    # 2026-09-02 v2: get_frozen_at 对所有用户查 SQLite 冻结索引（sync_freeze_index.py 全量同步 AddedBlackList）
     # 注意: 不能用 addr_l.upper() —— TRON base58 地址大小写敏感，lower()/upper() 会改变字符
     if is_frozen:
-        fat = FROZEN_AT.get(address)
-        if fat:
-            fat_ts = fat + " UTC"
+        fat_ts = get_frozen_at(address)
+        if fat_ts:
             timeline.append(TimelineItem(
                 time=fat_ts,
                 title=T["frozen_at_title"],
