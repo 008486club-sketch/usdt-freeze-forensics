@@ -98,6 +98,27 @@ def get_frozen_at(address: str) -> str:
         return fat + " UTC"
     return ""
 
+def cp_freeze_state(address: str):
+    """查询对手方当前冻结状态（用 freeze_index 最后一条事件）。
+    返回 (is_frozen_now: bool|None, last_added_ts_ms: int|None)。
+    None = 索引无记录（未冻结过）；最后事件 AddedBlackList = 冻结中；RemovedBlackList = 已解冻。"""
+    try:
+        import sqlite3
+        if os.path.exists(FREEZE_DB):
+            hex20 = _base58_to_hex20(address)
+            conn = sqlite3.connect(FREEZE_DB)
+            row = conn.execute(
+                "SELECT event_name, block_ts FROM freeze_events WHERE addr_hex=? ORDER BY block_ts DESC LIMIT 1",
+                (hex20,)).fetchone()
+            conn.close()
+            if row:
+                ev, ts = row
+                return (ev == "AddedBlackList"), int(ts)
+    except Exception:
+        pass
+    return None, None
+
+
 # 吉祥号特征：博彩/黑产热钱包常见（案例 TChHAZ...888888）
 _SUSPICIOUS_PATTERNS = ("888888", "666666", "999999", "777777")
 
@@ -186,6 +207,7 @@ class TxRecord(BaseModel):
     cp: str
     hash: str
     flag: bool
+    flagNote: str = ""  # 交易级异常原因（三语，后端生成；flag=True 时必填）
 
 
 class TimelineItem(BaseModel):
@@ -268,6 +290,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_at_title": "冻结标记出现",
             "frozen_at_desc": "USDT 合约于 {time} 将该地址加入黑名单（AddedBlackList 链上事件），当前 isBlackListed 仍为 true。冻结解除权在 Tether 及司法机构。",
             "frozen_time_unknown": "（确切冻结时间未收录；可上传 CSV 生成深度报告交叉验证）",
+            "flag_cp_frozen": "对手方已被 Tether 冻结",
+            "flag_cp_tag": "对手方高风险标签：{tag}",
             "cur_status": "当前状态",
             "high_risk_attention": "高风险关注",
             "high_risk_attention_desc": "地址存在大额/高频交易，虽未被冻结，但建议做深度分析排查资金来源。",
@@ -322,6 +346,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_at_title": "Xuất hiện dấu đóng băng",
             "frozen_at_desc": "Hợp đồng USDT đưa địa chỉ này vào danh sách đen lúc {time} (sự kiện trên chuỗi AddedBlackList), isBlackListed hiện vẫn true. Quyền mở khóa thuộc Tether và cơ quan tư pháp.",
             "frozen_time_unknown": " (Chưa ghi nhận thời điểm đóng băng chính xác; có thể tải CSV để đối chiếu trong báo cáo chuyên sâu.)",
+            "flag_cp_frozen": "Đối tác đã bị Tether đóng băng",
+            "flag_cp_tag": "Đối tác có nhãn rủi ro cao: {tag}",
             "cur_status": "Trạng thái hiện tại",
             "high_risk_attention": "Chú ý rủi ro cao",
             "high_risk_attention_desc": "Địa chỉ có giao dịch lớn/tần suất cao, chưa bị đóng băng nhưng nên phân tích sâu nguồn tiền.",
@@ -376,6 +402,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_at_title": "Freeze Flag Appeared",
             "frozen_at_desc": "USDT contract added this address to the blacklist at {time} (on-chain AddedBlackList event); isBlackListed is still true. Unfreeze authority rests with Tether and judicial bodies.",
             "frozen_time_unknown": " (Exact freeze time not recorded; upload a CSV for cross-checking in the deep report.)",
+            "flag_cp_frozen": "Counterparty is frozen by Tether",
+            "flag_cp_tag": "Counterparty high-risk tag: {tag}",
             "cur_status": "Current Status",
             "high_risk_attention": "High-risk Attention",
             "high_risk_attention_desc": "Address shows large/high-frequency transactions; not frozen, but deep source analysis is recommended.",
@@ -543,7 +571,10 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     for c in counterparties:
         c["tag"] = address_tag(c["addr"])
 
-    # 5. 最近交易
+    # 5. 最近交易（交易级异常标记：flag = 对手方被冻结 或 对手方高危标签，附 flagNote 原因）
+    # 2026-09-02 修正：旧逻辑 flag=bool(freeze_flags) 把"地址被冻结"连坐到每一笔交易，
+    # 连 10 USDT 小额都标"涉案"，且 TTu3mq(非冻因) 被误标——违反交易级依据与合规口径
+    _HOT_TAG_KWS = ("高危", "博彩", "诈骗", "马甲", "黑产")  # 注意不含"冻结"（"冻结前重要上游资金对手方（非冻因）"不触发）
     transactions = []
     for tx in sorted(trc20, key=lambda x: x.get("block_timestamp", 0), reverse=True)[:20]:
         frm = tx.get("from", "")
@@ -552,15 +583,28 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
         to_l = to.lower()
         val = int(tx.get("value", 0)) / USDT_DECIMALS
         direction = "in" if to_l == addr_l else "out"
-        cp = frm if direction == "in" else to
+        cp_full = frm if direction == "in" else to
         tx_hash = tx.get("transaction_id", "")
+        # 交易级判定
+        flag = False
+        flag_note = ""
+        cp_tag = address_tag(cp_full)
+        if cp_tag and any(k in cp_tag for k in _HOT_TAG_KWS):
+            flag = True
+            flag_note = T["flag_cp_tag"].format(tag=cp_tag)
+        else:
+            cp_frozen, _ = cp_freeze_state(cp_full)
+            if cp_frozen:
+                flag = True
+                flag_note = T["flag_cp_frozen"]
         transactions.append(TxRecord(
             time=ts_to_str(tx.get("block_timestamp", 0)),
             dir=direction,
             amt=round(val, 2),
-            cp=(cp[:6] + "..." + cp[-4:]) if len(cp) > 10 else cp,
+            cp=(cp_full[:6] + "..." + cp_full[-4:]) if len(cp_full) > 10 else cp_full,
             hash=(tx_hash[:12] + "..." + tx_hash[-8:]) if len(tx_hash) > 20 else tx_hash,
-            flag=bool(freeze_flags),
+            flag=flag,
+            flagNote=flag_note,
         ))
 
     # 6. 风险评分
