@@ -1,6 +1,7 @@
 /* Report page logic + mock data */
 let currentLang = 'zh';
 let currentFrozen = null; /* 时间线标题状态：fetch 完成后 true/false；未加载 null → 显示"地址活动时间线" */
+let currentAddr = ''; /* 当前诊断地址：setLang 切换语言时重新请求后端（动态文案按语言返回） */
 
 /* 空壳占位：禁止放入任何假数据（曾有 mock 导致用户看到别家地址信息，被麦总当场抓包） */
 const MOCK = { score: null, risk: 'low', counterparties: [], transactions: [] };
@@ -104,6 +105,10 @@ function setLang(lang) {
     const t = I18N[currentLang] || {};
     tlTitleEl.textContent = t[frozen ? 'tlTitle' : 'tlTitleFree']
       || (frozen ? '冻结时间线' : '地址活动时间线');
+  }
+  /* 语言切换后重新请求后端：动态文案（时间线/行动方案/评分依据/note）按语言返回，否则中英混杂 */
+  if (currentAddr) {
+    loadReport(currentAddr);
   }
 }
 
@@ -293,94 +298,100 @@ function updateScore(score) {
 
   /* ===== API Integration (real data) ===== */
   if (addr) {
-    const apiBase = window.API_BASE || '';
-    fetch(apiBase + '/api/report?address=' + encodeURIComponent(addr) + '&lang=' + currentLang)
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.score !== undefined) {
-          updateScore(data.score);
-          /* 评分依据（为什么是这个分数） */
-          renderBreakdown(data.score, data.scoreBreakdown || []);
-          if (data.created) {
-            document.getElementById('reportAddr').textContent = addr;
-            const mc = document.querySelector('[data-meta-created]');
-            if (mc) mc.textContent = data.created;
-            const mtx = document.querySelector('[data-meta-tx]');
-            if (mtx) mtx.textContent = (data.txCount || 0).toLocaleString();
-            if (data.transactions && data.transactions.length) {
-              const mf = document.querySelector('[data-meta-first]');
-              if (mf) mf.textContent = data.transactions[data.transactions.length - 1].time;
-              const ml = document.querySelector('[data-meta-last]');
-              if (ml) ml.textContent = data.transactions[0].time;
-            }
-          }
-          MOCK.counterparties = data.counterparties || [];
-          MOCK.transactions = data.transactions || [];
-          MOCK.score = data.score;
-          MOCK.risk = data.risk;
-          renderFlow();
-          renderTx();
-          if (data.timeline && data.timeline.length) {
-            renderTimeline(data.timeline);
-          }
-          /* 动态标题：未冻结地址不显示"冻结时间线"（防误导）；状态驱动 + id 定位（不被 setLang 覆盖） */
-          currentFrozen = data.frozen === true
-            || (data.score !== undefined && data.score >= 90)
-            || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
-          const tlTitleEl = document.getElementById('tlTitle');
-          if (tlTitleEl) {
-            const t2 = (I18N[currentLang] && I18N[currentLang]) || {};
-            const key = currentFrozen ? 'tlTitle' : 'tlTitleFree';
-            tlTitleEl.textContent = t2[key] || (currentFrozen ? '冻结时间线' : '地址活动时间线');
-          }
-          /* 风险横幅（OKLink 借鉴）：冻结/高危/中危/低危分级提示 */
-          const rb = document.getElementById('riskBanner');
-          if (rb) {
-            const t3 = (I18N[currentLang] && I18N[currentLang]) || {};
-            const frozen = data.frozen === true
-              || (data.score !== undefined && data.score >= 90)
-              || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
-            if (frozen) {
-              rb.textContent = t3.riskBannerFrozen || '🔒 该地址已被 Tether 冻结（高风险）';
-              rb.className = 'risk-banner show b-high';
-            } else if (data.score >= 60 || data.risk === 'high') {
-              rb.textContent = t3.riskBannerHigh || '⚠️ 高风险地址 — 建议深度排查';
-              rb.className = 'risk-banner show b-high';
-            } else if (data.score >= 30 || data.risk === 'mid') {
-              rb.textContent = t3.riskBannerMid || '⚡ 中风险地址 — 建议关注';
-              rb.className = 'risk-banner show b-mid';
-            } else {
-              rb.textContent = t3.riskBannerLow || '✅ 低风险地址';
-              rb.className = 'risk-banner show b-low';
-            }
-          }
-          /* 行动方案（API 基于真实数据定制） */
-          const pb = document.getElementById('planBox');
-          if (pb && data.actionPlan && data.actionPlan.length) {
-            pb.innerHTML = data.actionPlan.map((p, i) => `
-              <div class="plan-item">
-                <div class="pn">${i + 1}</div>
-                <div><div class="pt">${p.t}</div><div class="pd">${p.d}</div></div>
-              </div>`).join('');
-          }
-          /* 保险：显式设置 verdict（与 riskBanner 同一路径，阈值与 risk 统一 60/30） */
-          const vb = document.getElementById('verdictBox');
-          if (vb && data.score !== undefined) {
-            const s = data.score;
-            const key = s >= 60 ? 'verdictHigh' : (s >= 30 ? 'verdictMid' : 'verdictLow');
-            const t4 = (I18N[currentLang] && I18N[currentLang]) || {};
-            const fb2 = { verdictHigh: '⚠️ 高风险 — 建议深度分析', verdictMid: '⚡ 中风险 — 建议关注', verdictLow: '✅ 低风险' };
-            const txt2 = t4[key] || fb2[key];
-            if (txt2) vb.textContent = txt2;
-          }
-          if (data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length) {
-            console.log('Freeze flags:', data.freezeStatus.flags);
-          }
-        }
-      })
-      .catch(err => {
-        console.error('API error:', err);
-        /* 保持空态占位（"加载中/暂无数据"），不显示任何假数据 */
-      });
+    currentAddr = addr;
+    loadReport(addr);
   }
 })();
+
+/* ===== 加载报告（按当前语言请求后端；setLang 切换语言时也会调用） ===== */
+function loadReport(addr) {
+  const apiBase = window.API_BASE || '';
+  fetch(apiBase + '/api/report?address=' + encodeURIComponent(addr) + '&lang=' + currentLang)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.score !== undefined) {
+        updateScore(data.score);
+        /* 评分依据（为什么是这个分数） */
+        renderBreakdown(data.score, data.scoreBreakdown || []);
+        if (data.created) {
+          document.getElementById('reportAddr').textContent = addr;
+          const mc = document.querySelector('[data-meta-created]');
+          if (mc) mc.textContent = data.created;
+          const mtx = document.querySelector('[data-meta-tx]');
+          if (mtx) mtx.textContent = (data.txCount || 0).toLocaleString();
+          if (data.transactions && data.transactions.length) {
+            const mf = document.querySelector('[data-meta-first]');
+            if (mf) mf.textContent = data.transactions[data.transactions.length - 1].time;
+            const ml = document.querySelector('[data-meta-last]');
+            if (ml) ml.textContent = data.transactions[0].time;
+          }
+        }
+        MOCK.counterparties = data.counterparties || [];
+        MOCK.transactions = data.transactions || [];
+        MOCK.score = data.score;
+        MOCK.risk = data.risk;
+        renderFlow();
+        renderTx();
+        if (data.timeline && data.timeline.length) {
+          renderTimeline(data.timeline);
+        }
+        /* 动态标题：未冻结地址不显示"冻结时间线"（防误导）；状态驱动 + id 定位（不被 setLang 覆盖） */
+        currentFrozen = data.frozen === true
+          || (data.score !== undefined && data.score >= 90)
+          || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
+        const tlTitleEl = document.getElementById('tlTitle');
+        if (tlTitleEl) {
+          const t2 = (I18N[currentLang] && I18N[currentLang]) || {};
+          const key = currentFrozen ? 'tlTitle' : 'tlTitleFree';
+          tlTitleEl.textContent = t2[key] || (currentFrozen ? '冻结时间线' : '地址活动时间线');
+        }
+        /* 风险横幅（OKLink 借鉴）：冻结/高危/中危/低危分级提示 */
+        const rb = document.getElementById('riskBanner');
+        if (rb) {
+          const t3 = (I18N[currentLang] && I18N[currentLang]) || {};
+          const frozen = data.frozen === true
+            || (data.score !== undefined && data.score >= 90)
+            || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
+          if (frozen) {
+            rb.textContent = t3.riskBannerFrozen || '🔒 该地址已被 Tether 冻结（高风险）';
+            rb.className = 'risk-banner show b-high';
+          } else if (data.score >= 60 || data.risk === 'high') {
+            rb.textContent = t3.riskBannerHigh || '⚠️ 高风险地址 — 建议深度排查';
+            rb.className = 'risk-banner show b-high';
+          } else if (data.score >= 30 || data.risk === 'mid') {
+            rb.textContent = t3.riskBannerMid || '⚡ 中风险地址 — 建议关注';
+            rb.className = 'risk-banner show b-mid';
+          } else {
+            rb.textContent = t3.riskBannerLow || '✅ 低风险地址';
+            rb.className = 'risk-banner show b-low';
+          }
+        }
+        /* 行动方案（API 基于真实数据定制） */
+        const pb = document.getElementById('planBox');
+        if (pb && data.actionPlan && data.actionPlan.length) {
+          pb.innerHTML = data.actionPlan.map((p, i) => `
+            <div class="plan-item">
+              <div class="pn">${i + 1}</div>
+              <div><div class="pt">${p.t}</div><div class="pd">${p.d}</div></div>
+            </div>`).join('');
+        }
+        /* 保险：显式设置 verdict（与 riskBanner 同一路径，阈值与 risk 统一 60/30） */
+        const vb = document.getElementById('verdictBox');
+        if (vb && data.score !== undefined) {
+          const s = data.score;
+          const key = s >= 60 ? 'verdictHigh' : (s >= 30 ? 'verdictMid' : 'verdictLow');
+          const t4 = (I18N[currentLang] && I18N[currentLang]) || {};
+          const fb2 = { verdictHigh: '⚠️ 高风险 — 建议深度分析', verdictMid: '⚡ 中风险 — 建议关注', verdictLow: '✅ 低风险' };
+          const txt2 = t4[key] || fb2[key];
+          if (txt2) vb.textContent = txt2;
+        }
+        if (data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length) {
+          console.log('Freeze flags:', data.freezeStatus.flags);
+        }
+      }
+    })
+    .catch(err => {
+      console.error('API error:', err);
+      /* 保持空态占位（"加载中/暂无数据"），不显示任何假数据 */
+    });
+}
