@@ -182,6 +182,13 @@ def check_usdt_blacklist(address: str) -> bool:
 
 app = FastAPI(title="USDT Freeze Forensics API", version="1.0.0")
 
+# 埋点采集路由（复用 collector.py 已验逻辑；不新起进程）
+try:
+    from router_fastapi import router as ua_router
+    app.include_router(ua_router)
+except Exception:
+    pass  # collector 不可用时不影响报告主功能
+
 # CORS：允许前端页面跨域访问
 app.add_middleware(
     CORSMiddleware,
