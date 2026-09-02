@@ -21,7 +21,7 @@ zh: {
   tl5t:"冻结后",tl5d:"地址被冻结后的状态与后续交易由 API 实时生成",
   flowTitle:"资金流向（TOP 对手方）",legIn:"转入",legOut:"转出",
   txTitle:"关键交易记录",txTime:"时间",txDir:"方向",txAmt:"金额 (USDT)",txCp:"对手方",txHash:"TxHash",
-  dirIn:"转入",dirOut:"转出",flagWarn:"⚠ 涉案",
+  dirIn:"转入",dirOut:"转出",flagWarn:"⚠ 异常",
   appealT:"申诉建议",
   a1t:"收集交易凭证",a1d:"整理与该地址关联交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。",
   a2t:"准备 KYC 材料",a2d:"更新交易所 KYC 信息，提供身份证明、地址证明、资金来源说明。确保与链上行为一致。",
@@ -44,7 +44,7 @@ vi: {
   tl5t:"Sau đóng băng",tl5d:"Trạng thái sau đóng băng được tạo tự động từ API",
   flowTitle:"Dòng tiền (TOP đối tác)",legIn:"Chuyển vào",legOut:"Chuyển ra",
   txTitle:"Giao dịch quan trọng",txTime:"Thời gian",txDir:"Hướng",txAmt:"Số tiền (USDT)",txCp:"Đối tác",txHash:"TxHash",
-  dirIn:"Vào",dirOut:"Ra",flagWarn:"⚠ Liên quan",
+  dirIn:"Vào",dirOut:"Ra",flagWarn:"⚠ Bất thường",
   appealT:"Gợi ý khiếu nại",
   a1t:"Thu thập chứng từ",a1d:"Tổng hợp đầy đủ giao dịch với đối tác liên quan: chat, hợp đồng, hóa đơn, vận đơn.",
   a2t:"Chuẩn bị KYC",a2d:"Cập nhật KYC sàn, cung cấp CMND, bằng địa chỉ, giải trình nguồn tiền.",
@@ -184,10 +184,11 @@ function renderTx() {
   body.innerHTML = MOCK.transactions.map(tx => {
     const dirClass = tx.dir === 'in' ? 'in' : 'out';
     const dirText = tx.dir === 'in' ? (t.dirIn || 'IN') : (t.dirOut || 'OUT');
-    const flag = tx.flag ? ` <span style="color:var(--red);font-size:12px">${t.flagWarn || '⚠ Flagged'}</span>` : '';
+    const flag = tx.flag ? ` <span style="color:var(--red);font-size:12px" title="${(tx.flagNote || '').replace(/"/g, '&quot;')}">${t.flagWarn || '⚠ Flagged'}</span>` : '';
+    const flagNote = tx.flagNote ? `<div style="color:var(--red);font-size:11px;opacity:.85;margin-top:2px;line-height:1.3">${tx.flagNote}</div>` : '';
     return `<tr>
       <td>${tx.time}</td>
-      <td><span class="tx-dir ${dirClass}">${dirText}</span>${flag}</td>
+      <td><span class="tx-dir ${dirClass}">${dirText}</span>${flag}${flagNote}</td>
       <td style="font-weight:600">${tx.amt.toLocaleString()}</td>
       <td class="tx-addr">${tx.cp}</td>
       <td class="tx-hash hide-mobile">${tx.hash}</td>
