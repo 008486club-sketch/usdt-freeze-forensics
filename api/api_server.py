@@ -165,6 +165,7 @@ class ReportResponse(BaseModel):
     tags: List[str] = []
     timeline: List[TimelineItem] = []
     actionPlan: List[PlanItem] = []
+    scoreBreakdown: List[dict] = []  # 评分依据：[{label, points}]，前端展示"为什么是这个分数"
     note: str
 
 
@@ -210,14 +211,15 @@ def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str 
     - 账户创建 < 90 天 +8
     - 收过诈骗代币 +15
     - 吉祥号/风险特征标签（疑似博彩/黑产等）+25
+    返回 (score, breakdown)：breakdown 为 [{label, points}] 供前端展示"为什么是这个分数"。
     """
+    breakdown = [{"label": "基础分", "points": 10}]
     score = 10
-    reasons = []
 
     # 吉祥号/风险特征标签（如 888888 结尾 → 疑似博彩/黑产热钱包）
     if addr_tag and any(k in addr_tag for k in ("疑似", "高危", "博彩", "马甲", "诈骗")):
         score += 25
-        reasons.append(f"地址特征：{addr_tag}")
+        breakdown.append({"label": f"地址特征：{addr_tag}", "points": 25})
 
     # 大额转入
     big_in = 0
@@ -225,14 +227,15 @@ def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str 
         val = int(tx.get("value", 0)) / USDT_DECIMALS
         if val > 50000:
             big_in += 1
-    score += min(big_in, 4) * 8
-    if big_in > 0:
-        reasons.append(f"大额转入{big_in}笔")
+    add_big = min(big_in, 4) * 8
+    if add_big:
+        score += add_big
+        breakdown.append({"label": f"大额转入{big_in}笔", "points": add_big})
 
     # 冻结标记
     if freeze_flags:
         score += 35
-        reasons.append("检测到冻结标记(BL/UNFREEZE)")
+        breakdown.append({"label": "检测到冻结标记(BL/UNFREEZE)", "points": 35})
 
     # 对手方数量
     cps = set()
@@ -242,7 +245,7 @@ def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str 
     cps.discard("")
     if len(cps) > 20:
         score += 10
-        reasons.append(f"对手方{len(cps)}个")
+        breakdown.append({"label": f"对手方{len(cps)}个", "points": 10})
 
     # 创建时间
     create_time = account.get("create_time", 0)
@@ -250,10 +253,10 @@ def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str 
         age_days = (datetime.now(timezone.utc) - datetime.fromtimestamp(create_time / 1000, tz=timezone.utc)).days
         if age_days < 90:
             score += 8
-            reasons.append(f"新地址({age_days}天)")
+            breakdown.append({"label": f"新地址({age_days}天)", "points": 8})
 
     score = min(score, 100)
-    return score, reasons
+    return score, breakdown
 
 
 def build_report(address: str, api_key: str = None) -> dict:
@@ -340,10 +343,10 @@ def build_report(address: str, api_key: str = None) -> dict:
         ))
 
     # 6. 风险评分
-    score, reasons = compute_score(trc20, account, freeze_flags, address_tag(address))
+    score, score_breakdown = compute_score(trc20, account, freeze_flags, address_tag(address))
     if is_frozen:
         score = max(score, 95)
-        reasons.insert(0, "地址在 Tether 黑名单中（已冻结）")
+        score_breakdown.insert(0, {"label": "地址在 Tether 黑名单中（已冻结）", "points": score})
     risk = "high" if score >= 60 else ("mid" if score >= 30 else "low")
 
     # 7. 真实时间线（从链上数据构建，非 mock）
@@ -496,12 +499,13 @@ def build_report(address: str, api_key: str = None) -> dict:
         freezeStatus={
             "flags": freeze_flags[:5],
             "scamTokens": scam_tokens[:5],
-            "reasons": reasons,
+            "reasons": [b["label"] for b in score_breakdown],
         },
         frozen=is_frozen,
         tags=[t for t in [address_tag(address)] if t],
         timeline=timeline,
         actionPlan=action_plan,
+        scoreBreakdown=score_breakdown,
         note=note,
     )
 
