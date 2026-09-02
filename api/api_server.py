@@ -201,6 +201,169 @@ def get_tronscan_activity(address: str) -> dict:
         return {}
 
 
+# ===== 后端文案三语（2026-09-02 修复：时间线/行动方案/评分依据曾全中文，越南语页面显示混乱） =====
+def i18n_texts(lang: str = "zh") -> dict:
+    """返回后端动态文案的三语字典（timeline/actionPlan/scoreBreakdown/note）。
+    lang: zh / vi / en；未知语言回退 zh。"""
+    lang = lang if lang in ("vi", "en") else "zh"
+    T = {
+        "zh": {
+            "addr_created": "地址创建",
+            "addr_created_desc": "TRON 地址创建，当前 TRX 余额 {bal:.2f}",
+            "sample_window": "抽样交易窗口",
+            "sample_window_desc": "TronGrid 最近 {n} 笔 USDT 交易抽样（非全量）。冻结仅限制转出，冻结后入账仍可能出现在窗口内。",
+            "big_flow": "大额资金流动",
+            "big_flow_desc": "{frm}...{arrow} {to}... 金额 {amt:,.2f} USDT",
+            "frozen_now": "已冻结（当前状态）",
+            "frozen_title": "地址被 Tether 冻结",
+            "frozen_desc": "USDT 合约 isBlackListed 返回 true，该地址 USDT 无法转出/赎回。冻结解除权在 Tether 及司法机构。",
+            "cur_status": "当前状态",
+            "high_risk_attention": "高风险关注",
+            "high_risk_attention_desc": "地址存在大额/高频交易，虽未被冻结，但建议做深度分析排查资金来源。",
+            "plan_frozen_confirmed": "冻结事实已确认",
+            "plan_frozen_confirmed_desc": "官方 USDT 合约 isBlackListed 返回 true，该地址已被 Tether 冻结（风险评分 {score}/100）。冻结解除权在 Tether 及司法机构，链上无法自行解冻。",
+            "plan_cut_risky": "切断高风险资金关联",
+            "plan_cut_risky_desc": "本地址与已标记风险地址存在大额往来（如 {names}）。立即停止与这些地址的一切交易，避免新增风险。",
+            "plan_locate_main": "定位主要资金往来",
+            "plan_locate_main_desc": "最大对手方 {addr}… 累计{dom} {amt:,.0f} USDT。梳理与该对手方的交易背景（OTC/贸易/借款），这是申诉的核心证据来源。",
+            "dom_in": "转入",
+            "dom_out": "转出",
+            "plan_appeal_materials": "整理申诉材料",
+            "plan_appeal_materials_desc": "按清单准备：①与该地址关联交易的聊天记录/合同/发票/物流单据 ②KYC 材料 ③资金来源说明。证明交易背景真实合法，是申诉关键。",
+            "plan_warn_scam": "警惕二次诈骗",
+            "plan_warn_scam_desc": "Tether 官方不会通过 TG 或链上备注联系你。收到 UNFREEZE/UNLOCK/解冻等假代币或私聊付费解冻，一律是诈骗。",
+            "plan_expect": "预期管理",
+            "plan_expect_desc": "若地址有职业 OTC/高频过桥/高危对手方特征，解冻难度较高，申诉需充分证据并做好长期跟进准备。",
+            "plan_find_source": "识别风险来源",
+            "plan_find_source_desc": "当前风险评分 {score}/100（高风险），未被冻结但已被高度关注。检查近期大额交易与高风险对手方往来。",
+            "plan_self_check": "立即自查",
+            "plan_self_check_desc": "自查资金来源合法性，暂停与疑似黑产地址往来；如涉及 OTC 请保留完整交易凭证。",
+            "plan_prepare": "提前准备",
+            "plan_prepare_desc": "若交易所/钱包受限，第一时间联系官方渠道申诉；准备好交易背景证明（合同/聊天记录/物流单据）。",
+            "plan_addr_hint": "地址特征提示",
+            "plan_addr_hint_desc": "该地址暂无 USDT 交易记录（TronGrid 最近100笔为空），风险来自地址特征：{tag}。此类吉祥号地址常见于博彩/黑产收款渠道，建议不要使用该地址接收/转出大额资金。",
+            "plan_watch_signals": "关注风险信号",
+            "plan_watch_signals_desc": "当前风险评分 {score}/100（中风险）。关注高风险对手方往来，核对近期大额交易。",
+            "plan_periodic": "定期自查",
+            "plan_periodic_desc": "建议每月自查一次地址状态与对手方变化，避免被动卷入风险。",
+            "plan_normal": "当前状态正常",
+            "plan_normal_desc": "风险评分 {score}/100（低风险），未被冻结。正常使用即可，注意不要与疑似黑产地址发生往来。",
+            "note_sample": "数据来自 TronGrid 公开 API（最近100笔 USDT 抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
+            "note_no_usdt": "该地址 USDT (TRC-20) 交易为 0 笔；链上总交易 {n} 笔（TRX 转账/合约交互等，非 USDT）。USDT 冻结检测只统计 USDT，0 笔为真实状态。",
+            "bd_base": "基础分",
+            "bd_addr_feat": "地址特征：{tag}",
+            "bd_big_in": "大额转入{n}笔",
+            "bd_freeze_flag": "检测到冻结标记(BL/UNFREEZE)",
+            "bd_cps": "对手方{n}个",
+            "bd_new_addr": "新地址({n}天)",
+            "bd_blacklisted": "地址在 Tether 黑名单中（已冻结）",
+        },
+        "vi": {
+            "addr_created": "Tạo địa chỉ",
+            "addr_created_desc": "Tạo địa chỉ TRON, số dư TRX hiện tại {bal:.2f}",
+            "sample_window": "Cửa sổ giao dịch mẫu",
+            "sample_window_desc": "TronGrid {n} GD USDT gần nhất (mẫu, không đầy đủ). Đóng băng chỉ chặn chuyển ra; tiền vào sau khi đóng băng vẫn có thể xuất hiện.",
+            "big_flow": "Dòng tiền lớn",
+            "big_flow_desc": "{frm}...{arrow} {to}... Số tiền {amt:,.2f} USDT",
+            "frozen_now": "Đã đóng băng (hiện tại)",
+            "frozen_title": "Địa chỉ bị Tether đóng băng",
+            "frozen_desc": "Hợp đồng USDT isBlackListed trả true, USDT của địa chỉ này không thể chuyển ra/chuộc. Quyền mở khóa thuộc Tether và cơ quan tư pháp.",
+            "cur_status": "Trạng thái hiện tại",
+            "high_risk_attention": "Chú ý rủi ro cao",
+            "high_risk_attention_desc": "Địa chỉ có giao dịch lớn/tần suất cao, chưa bị đóng băng nhưng nên phân tích sâu nguồn tiền.",
+            "plan_frozen_confirmed": "Xác nhận đóng băng",
+            "plan_frozen_confirmed_desc": "Hợp đồng USDT isBlackListed trả true, địa chỉ đã bị Tether đóng băng (điểm rủi ro {score}/100). Quyền mở khóa thuộc Tether và cơ quan tư pháp.",
+            "plan_cut_risky": "Cắt liên hệ rủi ro",
+            "plan_cut_risky_desc": "Địa chỉ này có giao dịch lớn với các địa chỉ rủi ro đã đánh dấu (như {names}). Dừng mọi giao dịch với chúng ngay.",
+            "plan_locate_main": "Xác định đối tác chính",
+            "plan_locate_main_desc": "Đối tác lớn nhất {addr}… tổng {dom} {amt:,.0f} USDT. Làm rõ bối cảnh giao dịch (OTC/thương mại/vay) - bằng chứng cốt lõi khi khiếu nại.",
+            "dom_in": "nhận",
+            "dom_out": "chuyển",
+            "plan_appeal_materials": "Chuẩn bị hồ sơ khiếu nại",
+            "plan_appeal_materials_desc": "Chuẩn bị: ①tin nhắn/hợp đồng/hóa đơn/chứng từ vận chuyển ②KYC ③giải trình nguồn tiền. Chứng minh giao dịch hợp pháp là chìa khóa.",
+            "plan_warn_scam": "Cảnh giác lừa đảo thứ cấp",
+            "plan_warn_scam_desc": "Tether không liên hệ qua TG hay ghi chú trên chuỗi. UNFREEZE/UNLOCK/giải đóng băng giả hoặc nhắn tin đòi phí là lừa đảo.",
+            "plan_expect": "Quản lý kỳ vọng",
+            "plan_expect_desc": "Nếu địa chỉ có đặc điểm OTC chuyên nghiệp/trung chuyển nhanh/đối tác rủi ro, khả năng mở khóa thấp hơn, cần bằng chứng đầy đủ và kiên trì.",
+            "plan_find_source": "Xác định nguồn rủi ro",
+            "plan_find_source_desc": "Điểm rủi ro {score}/100 (cao), chưa bị đóng băng nhưng đang bị chú ý. Kiểm tra giao dịch lớn và đối tác rủi ro gần đây.",
+            "plan_self_check": "Tự kiểm tra ngay",
+            "plan_self_check_desc": "Kiểm tra tính hợp pháp nguồn tiền, tạm dừng giao dịch với địa chỉ đen; nếu OTC hãy giữ chứng từ đầy đủ.",
+            "plan_prepare": "Chuẩn bị trước",
+            "plan_prepare_desc": "Nếu sàn/ví hạn chế, liên hệ kênh chính thức ngay; chuẩn bị chứng minh giao dịch (hợp đồng/tin nhắn/chứng từ).",
+            "plan_addr_hint": "Gợi ý đặc điểm địa chỉ",
+            "plan_addr_hint_desc": "Địa chỉ chưa có giao dịch USDT (TronGrid 100 GD gần nhất trống), rủi ro từ đặc điểm: {tag}. Số đẹp thường dùng cho kênh cờ bạc/rửa tiền, không nên nhận/chuyển tiền lớn.",
+            "plan_watch_signals": "Theo dõi tín hiệu rủi ro",
+            "plan_watch_signals_desc": "Điểm rủi ro {score}/100 (trung bình). Theo dõi đối tác rủi ro cao, đối chiếu giao dịch lớn gần đây.",
+            "plan_periodic": "Tự kiểm tra định kỳ",
+            "plan_periodic_desc": "Kiểm tra trạng thái địa chỉ và đối tác mỗi tháng, tránh bị cuốn vào rủi ro.",
+            "plan_normal": "Trạng thái bình thường",
+            "plan_normal_desc": "Điểm rủi ro {score}/100 (thấp), chưa bị đóng băng. Sử dụng bình thường, tránh giao dịch với địa chỉ đen.",
+            "note_sample": "Dữ liệu từ TronGrid công khai (mẫu 100 GD USDT gần nhất, không đầy đủ). Tổng/đầu/cuối chỉ là cửa sổ mẫu; cần phân tích đầy đủ dùng báo cáo chuyên sâu (CSV).",
+            "note_no_usdt": "Địa chỉ có 0 giao dịch USDT (TRC-20); tổng giao dịch trên chuỗi {n} (TRX/hợp đồng, không phải USDT). Công cụ chỉ thống kê USDT, 0 là trạng thái thật.",
+            "bd_base": "Điểm cơ bản",
+            "bd_addr_feat": "Đặc điểm địa chỉ: {tag}",
+            "bd_big_in": "Chuyển vào lớn {n} GD",
+            "bd_freeze_flag": "Phát hiện dấu hiệu đóng băng (BL/UNFREEZE)",
+            "bd_cps": "{n} đối tác",
+            "bd_new_addr": "Địa chỉ mới ({n} ngày)",
+            "bd_blacklisted": "Địa chỉ trong danh sách đen Tether (đã đóng băng)",
+        },
+        "en": {
+            "addr_created": "Address Created",
+            "addr_created_desc": "TRON address created, current TRX balance {bal:.2f}",
+            "sample_window": "Sampled Trading Window",
+            "sample_window_desc": "TronGrid recent {n} USDT transactions (sampled, not full). Freeze only blocks outgoing; incoming after freeze may still appear.",
+            "big_flow": "Large Fund Movement",
+            "big_flow_desc": "{frm}...{arrow} {to}... Amount {amt:,.2f} USDT",
+            "frozen_now": "Frozen (current)",
+            "frozen_title": "Address frozen by Tether",
+            "frozen_desc": "USDT contract isBlackListed returned true; USDT cannot be transferred out/redeemed. Unfreeze authority rests with Tether and judicial bodies.",
+            "cur_status": "Current Status",
+            "high_risk_attention": "High-risk Attention",
+            "high_risk_attention_desc": "Address shows large/high-frequency transactions; not frozen, but deep source analysis is recommended.",
+            "plan_frozen_confirmed": "Freeze Confirmed",
+            "plan_frozen_confirmed_desc": "USDT contract isBlackListed returned true; address frozen by Tether (risk score {score}/100). Unfreeze authority rests with Tether and judicial bodies.",
+            "plan_cut_risky": "Cut High-risk Connections",
+            "plan_cut_risky_desc": "This address has large dealings with flagged risk addresses (e.g. {names}). Stop all transactions with them immediately.",
+            "plan_locate_main": "Identify Main Counterparty",
+            "plan_locate_main_desc": "Largest counterparty {addr}… total {dom} {amt:,.0f} USDT. Clarify transaction background (OTC/trade/loan) - core evidence for appeal.",
+            "dom_in": "in",
+            "dom_out": "out",
+            "plan_appeal_materials": "Prepare Appeal Materials",
+            "plan_appeal_materials_desc": "Prepare: ①chat/contract/invoice/shipping docs for related transactions ②KYC ③fund source statement. Proving legitimate background is key.",
+            "plan_warn_scam": "Beware Secondary Scams",
+            "plan_warn_scam_desc": "Tether never contacts via TG or on-chain notes. UNFREEZE/UNLOCK/fake tokens or paid-unfreeze DMs are scams.",
+            "plan_expect": "Expectation Management",
+            "plan_expect_desc": "If address shows professional OTC/high-frequency relay/high-risk counterparty traits, unfreeze is harder; appeal needs solid evidence and patience.",
+            "plan_find_source": "Identify Risk Source",
+            "plan_find_source_desc": "Risk score {score}/100 (high), not frozen but under scrutiny. Review recent large transactions and high-risk counterparties.",
+            "plan_self_check": "Self-check Now",
+            "plan_self_check_desc": "Verify fund source legality, pause dealings with suspected black-market addresses; keep full OTC records.",
+            "plan_prepare": "Prepare Ahead",
+            "plan_prepare_desc": "If exchange/wallet restricts you, contact official channels immediately; prepare transaction background proof.",
+            "plan_addr_hint": "Address Trait Notice",
+            "plan_addr_hint_desc": "No USDT transactions found (TronGrid recent 100 empty); risk comes from address trait: {tag}. Lucky-number addresses are common in gambling/black-market channels; avoid large funds on this address.",
+            "plan_watch_signals": "Monitor Risk Signals",
+            "plan_watch_signals_desc": "Risk score {score}/100 (medium). Monitor high-risk counterparties and verify recent large transactions.",
+            "plan_periodic": "Periodic Self-check",
+            "plan_periodic_desc": "Re-check address status and counterparties monthly to avoid passive risk involvement.",
+            "plan_normal": "Normal Status",
+            "plan_normal_desc": "Risk score {score}/100 (low), not frozen. Normal use; just avoid dealings with suspected black-market addresses.",
+            "note_sample": "Data from TronGrid public API (sampled last 100 USDT, not full). Totals/first/last are sampled-window only; use CSV deep report for full analysis.",
+            "note_no_usdt": "This address has 0 USDT (TRC-20) transactions; on-chain total {n} (TRX/contract interactions, not USDT). Tool only counts USDT; 0 is the true state.",
+            "bd_base": "Base Score",
+            "bd_addr_feat": "Address trait: {tag}",
+            "bd_big_in": "Large inflow x{n}",
+            "bd_freeze_flag": "Freeze flag detected (BL/UNFREEZE)",
+            "bd_cps": "{n} counterparties",
+            "bd_new_addr": "New address ({n} days)",
+            "bd_blacklisted": "Address on Tether blacklist (frozen)",
+        },
+    }
+    return T[lang]
+
+
 def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str = "") -> tuple:
     """启发式风险评分 0-100（数字越大风险越高）
     规则：
@@ -259,8 +422,9 @@ def compute_score(trc20: list, account: dict, freeze_flags: list, addr_tag: str 
     return score, breakdown
 
 
-def build_report(address: str, api_key: str = None) -> dict:
+def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     api = TronAPI(api_key=api_key)
+    T = i18n_texts(lang)
 
     # 0. 官方合约级黑名单检测（isBlackListed）
     is_frozen = check_usdt_blacklist(address)
@@ -344,9 +508,26 @@ def build_report(address: str, api_key: str = None) -> dict:
 
     # 6. 风险评分
     score, score_breakdown = compute_score(trc20, account, freeze_flags, address_tag(address))
+    # 评分依据标签本地化（compute_score 内部为中文，按 lang 翻译）
+    if lang != "zh":
+        def _bd_label(label: str) -> str:
+            if label == "基础分":
+                return T["bd_base"]
+            if label.startswith("地址特征："):
+                return T["bd_addr_feat"].format(tag=label.split("：", 1)[1])
+            if label.startswith("大额转入") and label.endswith("笔"):
+                return T["bd_big_in"].format(n=label[4:-1])
+            if label == "检测到冻结标记(BL/UNFREEZE)":
+                return T["bd_freeze_flag"]
+            if label.startswith("对手方") and label.endswith("个"):
+                return T["bd_cps"].format(n=label[3:-1])
+            if label.startswith("新地址(") and label.endswith("天)"):
+                return T["bd_new_addr"].format(n=label[4:-2])
+            return label
+        score_breakdown = [{"label": _bd_label(b["label"]), "points": b["points"]} for b in score_breakdown]
     if is_frozen:
         score = max(score, 95)
-        score_breakdown.insert(0, {"label": "地址在 Tether 黑名单中（已冻结）", "points": score})
+        score_breakdown.insert(0, {"label": T["bd_blacklisted"], "points": score})
     risk = "high" if score >= 60 else ("mid" if score >= 30 else "low")
 
     # 7. 真实时间线（从链上数据构建，非 mock）
@@ -356,8 +537,8 @@ def build_report(address: str, api_key: str = None) -> dict:
     if account.get("create_time"):
         timeline.append(TimelineItem(
             time=ts_to_str(account.get("create_time", 0)) + " UTC",
-            title="地址创建",
-            desc=f"TRON 地址创建，当前 TRX 余额 {float(account.get('balance', 0)) / 1_000_000:.2f}",
+            title=T["addr_created"],
+            desc=T["addr_created_desc"].format(bal=float(account.get('balance', 0)) / 1_000_000),
             dot="green",
         ))
 
@@ -369,8 +550,8 @@ def build_report(address: str, api_key: str = None) -> dict:
             mx_t = ts_to_str(max(times))
             timeline.append(TimelineItem(
                 time=f"{mn_t} ~ {mx_t} UTC",
-                title="抽样交易窗口",
-                desc=f"TronGrid 最近 {len(trc20)} 笔 USDT 交易抽样（非全量）。冻结仅限制转出，冻结后入账仍可能出现在窗口内。",
+                title=T["sample_window"],
+                desc=T["sample_window_desc"].format(n=len(trc20)),
                 dot="blue",
             ))
 
@@ -381,28 +562,29 @@ def build_report(address: str, api_key: str = None) -> dict:
         val = int(biggest.get("value", 0)) / USDT_DECIMALS
         frm = biggest.get("from", "")
         to = biggest.get("to", "")
+        arrow = "→" if frm != address.lower() else "←"
         timeline.append(TimelineItem(
             time=ts_to_str(biggest.get("block_timestamp", 0)) + " UTC",
-            title="大额资金流动",
-            desc=f"{frm[:6]}...{'→' if frm != address.lower() else '←'} {to[:6]}... 金额 {val:,.2f} USDT",
+            title=T["big_flow"],
+            desc=T["big_flow_desc"].format(frm=frm[:6], arrow=arrow, to=to[:6], amt=val),
             dot="blue",
         ))
 
     # 7.4 冻结事件
     if is_frozen:
         timeline.append(TimelineItem(
-            time="已冻结（当前状态）",
-            title="地址被 Tether 冻结",
-            desc="USDT 合约 isBlackListed 返回 true，该地址 USDT 无法转出/赎回。冻结解除权在 Tether 及司法机构。",
+            time=T["frozen_now"],
+            title=T["frozen_title"],
+            desc=T["frozen_desc"],
             dot="red",
         ))
     else:
         # 7.5 未冻结但有风险
         if len(big_txs) >= 3 or len(set(t.get("from") for t in trc20)) > 20:
             timeline.append(TimelineItem(
-                time="当前状态",
-                title="高风险关注",
-                desc="地址存在大额/高频交易，虽未被冻结，但建议做深度分析排查资金来源。",
+                time=T["cur_status"],
+                title=T["high_risk_attention"],
+                desc=T["high_risk_attention_desc"],
                 dot="gray",
             ))
 
@@ -415,66 +597,66 @@ def build_report(address: str, api_key: str = None) -> dict:
 
     if is_frozen:
         action_plan.append(PlanItem(
-            t="冻结事实已确认",
-            d=f"官方 USDT 合约 isBlackListed 返回 true，该地址已被 Tether 冻结（风险评分 {score}/100）。冻结解除权在 Tether 及司法机构，链上无法自行解冻。",
+            t=T["plan_frozen_confirmed"],
+            d=T["plan_frozen_confirmed_desc"].format(score=score),
         ))
         if risky_cps:
             names = "、".join(c["addr"][:8] + "…" for c in risky_cps[:3])
             action_plan.append(PlanItem(
-                t="切断高风险资金关联",
-                d=f"本地址与已标记风险地址存在大额往来（如 {names}）。立即停止与这些地址的一切交易，避免新增风险。",
+                t=T["plan_cut_risky"],
+                d=T["plan_cut_risky_desc"].format(names=names),
             ))
         if big_cps:
             top = big_cps[0]
-            dom = "转入" if top["inAmt"] >= top["outAmt"] else "转出"
+            dom = T["dom_in"] if top["inAmt"] >= top["outAmt"] else T["dom_out"]
             action_plan.append(PlanItem(
-                t="定位主要资金往来",
-                d=f"最大对手方 {top['addr'][:8]}… 累计{dom} {max(top['inAmt'], top['outAmt']):,.0f} USDT。梳理与该对手方的交易背景（OTC/贸易/借款），这是申诉的核心证据来源。",
+                t=T["plan_locate_main"],
+                d=T["plan_locate_main_desc"].format(addr=top["addr"][:8], dom=dom, amt=max(top["inAmt"], top["outAmt"])),
             ))
         action_plan.append(PlanItem(
-            t="整理申诉材料",
-            d="按清单准备：①与该地址关联交易的聊天记录/合同/发票/物流单据 ②KYC 材料 ③资金来源说明。证明交易背景真实合法，是申诉关键。",
+            t=T["plan_appeal_materials"],
+            d=T["plan_appeal_materials_desc"],
         ))
         action_plan.append(PlanItem(
-            t="警惕二次诈骗",
-            d="Tether 官方不会通过 TG 或链上备注联系你。收到 UNFREEZE/UNLOCK/解冻等假代币或私聊付费解冻，一律是诈骗。",
+            t=T["plan_warn_scam"],
+            d=T["plan_warn_scam_desc"],
         ))
         action_plan.append(PlanItem(
-            t="预期管理",
-            d="若地址有职业 OTC/高频过桥/高危对手方特征，解冻难度较高，申诉需充分证据并做好长期跟进准备。",
+            t=T["plan_expect"],
+            d=T["plan_expect_desc"],
         ))
     elif score >= 60:
         action_plan.append(PlanItem(
-            t="识别风险来源",
-            d=f"当前风险评分 {score}/100（高风险），未被冻结但已被高度关注。检查近期大额交易与高风险对手方往来。",
+            t=T["plan_find_source"],
+            d=T["plan_find_source_desc"].format(score=score),
         ))
         action_plan.append(PlanItem(
-            t="立即自查",
-            d="自查资金来源合法性，暂停与疑似黑产地址往来；如涉及 OTC 请保留完整交易凭证。",
+            t=T["plan_self_check"],
+            d=T["plan_self_check_desc"],
         ))
         action_plan.append(PlanItem(
-            t="提前准备",
-            d="若交易所/钱包受限，第一时间联系官方渠道申诉；准备好交易背景证明（合同/聊天记录/物流单据）。",
+            t=T["plan_prepare"],
+            d=T["plan_prepare_desc"],
         ))
     elif score >= 30:
         if not trc20 and self_tag:
             action_plan.append(PlanItem(
-                t="地址特征提示",
-                d=f"该地址暂无 USDT 交易记录（TronGrid 最近100笔为空），风险来自地址特征：{self_tag}。此类吉祥号地址常见于博彩/黑产收款渠道，建议不要使用该地址接收/转出大额资金。",
+                t=T["plan_addr_hint"],
+                d=T["plan_addr_hint_desc"].format(tag=self_tag),
             ))
         else:
             action_plan.append(PlanItem(
-                t="关注风险信号",
-                d=f"当前风险评分 {score}/100（中风险）。关注高风险对手方往来，核对近期大额交易。",
+                t=T["plan_watch_signals"],
+                d=T["plan_watch_signals_desc"].format(score=score),
             ))
         action_plan.append(PlanItem(
-            t="定期自查",
-            d="建议每月自查一次地址状态与对手方变化，避免被动卷入风险。",
+            t=T["plan_periodic"],
+            d=T["plan_periodic_desc"],
         ))
     else:
         action_plan.append(PlanItem(
-            t="当前状态正常",
-            d=f"风险评分 {score}/100（低风险），未被冻结。正常使用即可，注意不要与疑似黑产地址发生往来。",
+            t=T["plan_normal"],
+            d=T["plan_normal_desc"].format(score=score),
         ))
 
     # 10. 组装响应
@@ -482,11 +664,10 @@ def build_report(address: str, api_key: str = None) -> dict:
     # txCount = USDT 抽样笔数（非全量总数；TronGrid 权威 USDT 源，0 就是真 0）
     tx_count = len(trc20)
 
-    note = "数据来自 TronGrid 公开 API（最近100笔 USDT 抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。"
+    note = T["note_sample"]
     # USDT 0 笔但链上有其他活动（TRX/TRC-10）——诚实说明，避免用户误以为系统漏数据
     if not trc20 and chain_activity.get("total_tx"):
-        note = (f"该地址 USDT (TRC-20) 交易为 0 笔；链上总交易 {chain_activity.get('total_tx')} 笔"
-                f"（TRX 转账/合约交互等，非 USDT）。USDT 冻结检测只统计 USDT，0 笔为真实状态。")
+        note = T["note_no_usdt"].format(n=chain_activity.get("total_tx"))
 
     return ReportResponse(
         address=address,
@@ -511,8 +692,10 @@ def build_report(address: str, api_key: str = None) -> dict:
 
 
 @app.get("/api/report", response_model=ReportResponse)
-def get_report(address: str = Query(..., description="TRON 地址"), api_key: str = Query(None, description="TronGrid API Key（可选）")):
-    return build_report(address, api_key)
+def get_report(address: str = Query(..., description="TRON 地址"),
+               api_key: str = Query(None, description="TronGrid API Key（可选）"),
+               lang: str = Query("zh", description="响应文案语言: zh/vi/en")):
+    return build_report(address, api_key, lang=lang)
 
 
 @app.get("/api/health")
