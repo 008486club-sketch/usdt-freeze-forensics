@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDT 冻结检测 · 深度报告</title>
+<style>
+:root{--red:#dc2626;--ylw:#d97706;--grn:#16a34a;--ink:#111827;--mut:#6b7280;--line:#e5e7eb;--bg:#f3f4f6;--card:#ffffff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:22px;margin-bottom:4px}
+.sub{color:var(--mut);font-size:14px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px}
+.upload{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.drop{border:2px dashed #cbd5e1;border-radius:10px;padding:32px;text-align:center;cursor:pointer;color:var(--mut);transition:.2s}
+.drop:hover,.drop.over{border-color:var(--red);background:#fef2f2}
+.drop strong{color:var(--ink);display:block;font-size:15px}
+.btn{background:var(--red);color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:15px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+input[type=text]{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;width:100%}
+.hint{font-size:13px;color:var(--mut)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#f9fafb;border:1px solid var(--line);border-radius:8px;padding:12px}
+.stat .k{font-size:12px;color:var(--mut)}
+.stat .v{font-size:18px;font-weight:700;margin-top:2px}
+.report-box{background:#f9fafb;border:1px solid var(--line);border-radius:8px;padding:16px;max-height:480px;overflow:auto;font-size:13px;white-space:pre-wrap;word-break:break-word;margin-bottom:12px}
+.dl-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+/* 打赏弹窗 */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:24px;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.2)}
+.modal h3{font-size:18px;margin-bottom:8px}
+.modal .close{position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:var(--mut)}
+.tip-addr{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#f3f4f6;border:1px solid var(--line);border-radius:8px;padding:10px;word-break:break-all;margin:10px 0;user-select:all}
+.tip-note{font-size:12px;color:var(--mut);margin-bottom:12px}
+.modal .btn{width:100%;margin-top:6px}
+.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:12px;margin-bottom:12px;display:none}
+.err.show{display:block}
+footer{margin-top:32px;text-align:center;color:var(--mut);font-size:12px}
+footer a{color:var(--mut)}
+@media(max-width:640px){.stat-grid{grid-template-columns:repeat(2,1fr)}.dl-row{flex-direction:column}.dl-row .btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 USDT 冻结检测 · 深度报告</h1>
+  <div class="sub">上传 TronScan 导出的 CSV，全量分析资金流 / 冻结标记 / 对手方 / 能量委托。免费生成，欢迎打赏支持。</div>
+
+  <div class="card">
+    <h2>📁 上传 CSV</h2>
+    <div class="upload">
+      <div class="drop" id="drop">
+        <strong>点击选择或拖拽 CSV 文件</strong>
+        <span>支持 TronScan 导出：TRON-tokenTransfer-*.csv 或 TRON-transaction-*.csv（≤10MB）</span>
+      </div>
+      <input type="file" id="file" accept=".csv" style="display:none">
+      <input type="text" id="addr" placeholder="目标地址（可选，默认取 CSV 中出现最多的地址）">
+      <button class="btn" id="run" disabled>开始分析</button>
+      <div class="err" id="err"></div>
+    </div>
+  </div>
+
+  <div id="result" style="display:none">
+    <div class="card">
+      <h2>📈 分析摘要</h2>
+      <div class="stat-grid" id="stats"></div>
+      <div class="dl-row">
+        <button class="btn ghost" id="dlmd">⬇ 下载 Markdown 报告</button>
+        <span class="hint">下载时弹出打赏页，自愿支持开发</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📄 报告预览</h2>
+      <div class="report-box" id="preview"></div>
+    </div>
+  </div>
+
+  <footer>USDT 冻结检测 · <a href="index.html">返回查询</a> · 客服 <a href="mailto:mach@paytok.com">mach@paytok.com</a></footer>
+</div>
+
+<!-- 打赏弹窗 -->
+<div class="overlay" id="tipOverlay">
+  <div class="modal">
+    <button class="close" id="tipClose">×</button>
+    <h3>☕ 感谢使用！</h3>
+    <p class="hint">深度报告免费生成。如果你觉得有帮助，可以打赏支持开发（完全自愿，不打赏也不影响使用）：</p>
+    <div class="tip-addr">TTYu42MKHtNJXAbuDpeFdoaiwaeZNFdrVT</div>
+    <img src="tip-qr.png" alt="打赏二维码" style="width:180px;height:180px;display:block;margin:0 auto;border-radius:8px">
+    <p class="tip-note" style="text-align:center">USDT (TRC-20) 仅 · 不构成服务合约</p>
+    <button class="btn ghost" id="tipSkip">跳过，直接下载</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var drop=document.getElementById('drop'),fileEl=document.getElementById('file'),run=document.getElementById('run');
+  var err=document.getElementById('err'),addrEl=document.getElementById('addr');
+  var result=document.getElementById('result'),stats=document.getElementById('stats'),preview=document.getElementById('preview');
+  var tipOverlay=document.getElementById('tipOverlay'),tipSkip=document.getElementById('tipSkip'),tipClose=document.getElementById('tipClose');
+  var curMd='';
+
+  drop.addEventListener('click',function(){fileEl.click()});
+  fileEl.addEventListener('change',function(){ if(fileEl.files.length){run.disabled=false;run.textContent='开始分析（'+fileEl.files[0].name+'）';} });
+  ['dragover','dragenter'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('over')})});
+  ['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('over')})});
+  drop.addEventListener('drop',function(e){ if(e.dataTransfer.files.length){fileEl.files=e.dataTransfer.files;run.disabled=false;run.textContent='开始分析（'+e.dataTransfer.files[0].name+'）';} });
+
+  run.addEventListener('click',function(){
+    var f=fileEl.files[0]; if(!f){err.textContent='请先选择 CSV 文件';err.classList.add('show');return;}
+    err.classList.remove('show');run.disabled=true;run.textContent='分析中…';
+    var fd=new FormData();fd.append('file',f);
+    var addr=addrEl.value.trim(); if(addr)fd.append('address',addr);
+    fetch('/api/deep-report',{method:'POST',body:fd})
+      .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d}})})
+      .then(function(res){
+        run.disabled=false;run.textContent='开始分析';
+        if(!res.ok){err.textContent='分析失败：'+(res.d&&res.d.detail||'未知错误');err.classList.add('show');return;}
+        var d=res.d;curMd=d.markdown||'';
+        stats.innerHTML=''
+          +'<div class="stat"><div class="k">CSV 行数</div><div class="v">'+d.rows+'</div></div>'
+          +'<div class="stat"><div class="k">USDT 交易</div><div class="v">'+d.usdt_n+'</div></div>'
+          +'<div class="stat"><div class="k">转入 (USDT)</div><div class="v">'+(+d.usdt_in).toLocaleString(undefined,{maximumFractionDigits:0})+'</div></div>'
+          +'<div class="stat"><div class="k">转出 (USDT)</div><div class="v">'+(+d.usdt_out).toLocaleString(undefined,{maximumFractionDigits:0})+'</div></div>'
+          +'<div class="stat"><div class="k">冻结标记</div><div class="v">'+d.marked_n+'</div></div>'
+          +'<div class="stat"><div class="k">诈骗代币</div><div class="v">'+d.scam_n+'</div></div>';
+        preview.textContent=curMd;
+        result.style.display='block';
+        result.scrollIntoView({behavior:'smooth'});
+      })
+      .catch(function(e){run.disabled=false;run.textContent='开始分析';err.textContent='请求失败：'+e.message;err.classList.add('show');});
+  });
+
+  // 下载 + 打赏弹窗
+  document.getElementById('dlmd').addEventListener('click',function(){ tipOverlay.classList.add('show'); });
+  function doDownload(){ if(!curMd)return; var b=new Blob([curMd],{type:'text/markdown;charset=utf-8'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='usdt-deep-report.md'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href); }
+  tipSkip.addEventListener('click',function(){tipOverlay.classList.remove('show');doDownload();});
+  tipClose.addEventListener('click',function(){tipOverlay.classList.remove('show');});
+  tipOverlay.addEventListener('click',function(e){if(e.target===tipOverlay){tipOverlay.classList.remove('show');}});
+  // 打赏地址防剪贴板劫持：复制回显首尾
+  document.querySelector('.tip-addr').addEventListener('click',function(){
+    navigator.clipboard.writeText('TTYu42MKHtNJXAbuDpeFdoaiwaeZNFdrVT').then(function(){
+      var el=document.querySelector('.tip-addr');var old=el.textContent;el.textContent='已复制：TTYu42...drVT';setTimeout(function(){el.textContent=old},2000);
+    }).catch(function(){});
+  });
+})();
+</script>
+</body>
+</html>
