@@ -33,7 +33,7 @@ zh: {
   comp1:"数据加密传输", comp2:"不接触用户资产", comp3:"链上公开数据",
   tipT:"支持我们", tipS:"如果服务对您有帮助，欢迎打赏支持",
   tipL:"USDT-TRC20 打赏地址", tipC:"点击复制",
-  cMail:"📧 邮件咨询",
+  cMail:"📧 邮件咨询", cDeep:"📊 深度报告（CSV 全量）",
   footN:"本服务基于区块链公开数据，不提供法律建议。",
   toastCopy:"地址已复制到剪贴板",
   toastDiag:"正在分析地址，请稍候..."
@@ -71,7 +71,7 @@ vi: {
   comp1:"Mã hóa dữ liệu", comp2:"Không chạm tài sản", comp3:"Dữ liệu công khai",
   tipT:"Hỗ trợ chúng tôi", tipS:"Nếu dịch vụ hữu ích, hoan nghênh ủng hộ",
   tipL:"Địa chỉ USDT-TRC20", tipC:"Nhấn để sao chép",
-  cMail:"📧 Email",
+  cMail:"📧 Email", cDeep:"📊 Báo cáo sâu (CSV đầy đủ)",
   footN:"Dịch vụ dựa trên dữ liệu blockchain công khai, không phải tư vấn pháp lý.",
   toastCopy:"Đã sao chép địa chỉ",
   toastDiag:"Đang phân tích địa chỉ..."
@@ -109,7 +109,7 @@ en: {
   comp1:"Encrypted data", comp2:"No asset access", comp3:"Public data only",
   tipT:"Support Us", tipS:"If our service helped you, tips are welcome",
   tipL:"USDT-TRC20 Tip Address", tipC:"Click to copy",
-  cMail:"📧 Email",
+  cMail:"📧 Email", cDeep:"📊 Deep Report (Full CSV)",
   footN:"This service is based on public blockchain data and does not constitute legal advice.",
   toastCopy:"Address copied to clipboard",
   toastDiag:"Analyzing address, please wait..."
