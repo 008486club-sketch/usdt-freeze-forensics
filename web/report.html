@@ -33,6 +33,14 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 .risk-banner.b-low{background:#dcfce7;color:#166534;border:1px solid #86efac}
 .cp-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;font-size:11px;background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb;vertical-align:middle}
 .cp-tag.warn{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.bd-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.bd-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:8px 12px;font-size:13px}
+.bd-item .bd-label{flex:1;color:var(--g700)}
+.bd-item .bd-pts{font-weight:700;color:var(--g900);white-space:nowrap}
+.bd-item.bd-base{background:#eff6ff;border-color:#bfdbfe}
+.bd-item.bd-pos .bd-pts{color:var(--red)}
+.bd-total{font-size:14px;color:var(--g500);text-align:right}
+.bd-total b{font-size:20px;color:var(--g900)}
 .plan-box{display:flex;flex-direction:column;gap:10px}
 .plan-item{display:flex;gap:12px;background:#fff;border:1px solid var(--g200);border-left:4px solid var(--blue);border-radius:8px;padding:12px 14px}
 .plan-item .pn{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
@@ -199,6 +207,13 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
   <span id="verdictBox" style="background:#e5e7eb;color:#374151"></span>
 </div>
 
+<!-- Score Breakdown（评分依据：为什么是这个分数） -->
+<div class="card" id="breakdownCard" style="display:none">
+  <h3>🧮 <span data-i18n="bdTitle">评分依据</span></h3>
+  <div class="bd-list" id="bdList"></div>
+  <div class="bd-total">总分 <b id="bdScore">--</b>/100</div>
+</div>
+
 <!-- Timeline -->
 <div class="card">
 <h3>📅 <span id="tlTitle">地址活动时间线</span></h3>
@@ -272,7 +287,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 </footer>
 
 <div class="toast" id="toast"></div>
-<script src="i18n.js?v=20260901k"></script>
-<script src="report-app.20260901k.js" defer></script>
+<script src="i18n.js?v=20260901l"></script>
+<script src="report-app.20260901l.js" defer></script>
 </body>
 </html>
