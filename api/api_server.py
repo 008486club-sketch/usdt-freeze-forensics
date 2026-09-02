@@ -50,6 +50,13 @@ ADDRESS_TAGS = {
     "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t": "USDT 合约",
 }
 
+# 已知案例确切冻结时间（深度报告 CSV 全量分析的 BL 标记，证据等级 E3 强关联；官方 isBlackListed 仅给当前状态）
+# 格式: {"地址大写": "YYYY-MM-DD HH:MM:SS"}；时间戳来自 TronScan 导出 CSV 的 BL 标记行
+FROZEN_AT = {
+    "TJeh5fXJttbypanF2FMzgu42yqXnc5BuWw": "2026-08-08 21:20:36",  # 老板：BL 标记 + 冻结余额实算 484,381.990554
+    "TGC1t9MbJhx7uKYiQG4SzoafeFz3Jzg1JN": "2026-07-01 18:04:03",  # 朋友：BL 标记 61.781241 铁证
+}
+
 # 吉祥号特征：博彩/黑产热钱包常见（案例 TChHAZ...888888）
 _SUSPICIOUS_PATTERNS = ("888888", "666666", "999999", "777777")
 
@@ -217,6 +224,9 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_now": "已冻结（当前状态）",
             "frozen_title": "地址被 Tether 冻结",
             "frozen_desc": "USDT 合约 isBlackListed 返回 true，该地址 USDT 无法转出/赎回。冻结解除权在 Tether 及司法机构。",
+            "frozen_at_title": "冻结标记出现",
+            "frozen_at_desc": "该地址于 {time} 出现冻结标记（BL），与当前 Tether 黑名单状态一致。来源：深度报告 CSV 全量分析。",
+            "frozen_time_unknown": "（确切冻结时间未收录；可上传 CSV 生成深度报告交叉验证）",
             "cur_status": "当前状态",
             "high_risk_attention": "高风险关注",
             "high_risk_attention_desc": "地址存在大额/高频交易，虽未被冻结，但建议做深度分析排查资金来源。",
@@ -268,6 +278,9 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_now": "Đã đóng băng (hiện tại)",
             "frozen_title": "Địa chỉ bị Tether đóng băng",
             "frozen_desc": "Hợp đồng USDT isBlackListed trả true, USDT của địa chỉ này không thể chuyển ra/chuộc. Quyền mở khóa thuộc Tether và cơ quan tư pháp.",
+            "frozen_at_title": "Xuất hiện dấu đóng băng",
+            "frozen_at_desc": "Địa chỉ xuất hiện dấu đóng băng (BL) lúc {time}, khớp với trạng thái danh sách đen Tether hiện tại. Nguồn: phân tích CSV báo cáo chuyên sâu.",
+            "frozen_time_unknown": " (Chưa ghi nhận thời điểm đóng băng chính xác; có thể tải CSV để đối chiếu trong báo cáo chuyên sâu.)",
             "cur_status": "Trạng thái hiện tại",
             "high_risk_attention": "Chú ý rủi ro cao",
             "high_risk_attention_desc": "Địa chỉ có giao dịch lớn/tần suất cao, chưa bị đóng băng nhưng nên phân tích sâu nguồn tiền.",
@@ -319,6 +332,9 @@ def i18n_texts(lang: str = "zh") -> dict:
             "frozen_now": "Frozen (current)",
             "frozen_title": "Address frozen by Tether",
             "frozen_desc": "USDT contract isBlackListed returned true; USDT cannot be transferred out/redeemed. Unfreeze authority rests with Tether and judicial bodies.",
+            "frozen_at_title": "Freeze Flag Appeared",
+            "frozen_at_desc": "A freeze flag (BL) appeared on this address at {time}, matching its current Tether blacklist status. Source: deep-report CSV full analysis.",
+            "frozen_time_unknown": " (Exact freeze time not recorded; upload a CSV for cross-checking in the deep report.)",
             "cur_status": "Current Status",
             "high_risk_attention": "High-risk Attention",
             "high_risk_attention_desc": "Address shows large/high-frequency transactions; not frozen, but deep source analysis is recommended.",
@@ -570,14 +586,25 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
             dot="blue",
         ))
 
-    # 7.4 冻结事件
+    # 7.4 冻结事件（确切冻结时间：活库 FROZEN_AT，来源深度报告 CSV 的 BL 标记，E3）
+    # 注意: 不能用 addr_l.upper() —— TRON base58 地址大小写敏感，lower()/upper() 会改变字符
     if is_frozen:
-        timeline.append(TimelineItem(
-            time=T["frozen_now"],
-            title=T["frozen_title"],
-            desc=T["frozen_desc"],
-            dot="red",
-        ))
+        fat = FROZEN_AT.get(address)
+        if fat:
+            fat_ts = fat + " UTC"
+            timeline.append(TimelineItem(
+                time=fat_ts,
+                title=T["frozen_at_title"],
+                desc=T["frozen_at_desc"].format(time=fat_ts),
+                dot="red",
+            ))
+        else:
+            timeline.append(TimelineItem(
+                time=T["frozen_now"],
+                title=T["frozen_title"],
+                desc=T["frozen_desc"] + T["frozen_time_unknown"],
+                dot="red",
+            ))
     else:
         # 7.5 未冻结但有风险
         if len(big_txs) >= 3 or len(set(t.get("from") for t in trc20)) > 20:
