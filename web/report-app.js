@@ -1,5 +1,6 @@
 /* Report page logic + mock data */
 let currentLang = 'zh';
+let currentFrozen = null; /* 时间线标题状态：fetch 完成后 true/false；未加载 null → 显示"地址活动时间线" */
 
 /* 空壳占位：禁止放入任何假数据（曾有 mock 导致用户看到别家地址信息，被麦总当场抓包） */
 const MOCK = { score: null, risk: 'low', counterparties: [], transactions: [] };
@@ -96,6 +97,14 @@ function setLang(lang) {
   document.documentElement.lang = lang === 'zh' ? 'zh' : lang === 'vi' ? 'vi' : 'en';
   renderFlow();
   renderTx();
+  /* 时间线标题状态同步：不依赖 data-i18n（避免 setLang 用默认值覆盖），由 fetch 数据驱动 */
+  const tlTitleEl = document.getElementById('tlTitle');
+  if (tlTitleEl) {
+    const frozen = currentFrozen === true;
+    const t = I18N[currentLang] || {};
+    tlTitleEl.textContent = t[frozen ? 'tlTitle' : 'tlTitleFree']
+      || (frozen ? '冻结时间线' : '地址活动时间线');
+  }
 }
 
 function showToast(msg) {
@@ -292,15 +301,15 @@ function updateScore(score) {
           if (data.timeline && data.timeline.length) {
             renderTimeline(data.timeline);
           }
-          /* 动态标题：未冻结地址不显示"冻结时间线"（防误导） */
-          const tlTitleEl = document.querySelector('[data-i18n="tlTitle"]');
+          /* 动态标题：未冻结地址不显示"冻结时间线"（防误导）；状态驱动 + id 定位（不被 setLang 覆盖） */
+          currentFrozen = data.frozen === true
+            || (data.score !== undefined && data.score >= 90)
+            || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
+          const tlTitleEl = document.getElementById('tlTitle');
           if (tlTitleEl) {
-            const frozen = data.frozen === true
-              || (data.score !== undefined && data.score >= 90)
-              || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
-            const key = frozen ? 'tlTitle' : 'tlTitleFree';
-            const t2 = (I18N[currentLang] && I18N[currentLang][key]) || (frozen ? '冻结时间线' : '地址活动时间线');
-            tlTitleEl.textContent = t2;
+            const t2 = (I18N[currentLang] && I18N[currentLang]) || {};
+            const key = currentFrozen ? 'tlTitle' : 'tlTitleFree';
+            tlTitleEl.textContent = t2[key] || (currentFrozen ? '冻结时间线' : '地址活动时间线');
           }
           /* 风险横幅（OKLink 借鉴）：冻结/高危/中危/低危分级提示 */
           const rb = document.getElementById('riskBanner');
