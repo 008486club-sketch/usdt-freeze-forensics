@@ -242,6 +242,7 @@ class ReportResponse(BaseModel):
     transactions: List[TxRecord]
     freezeStatus: Optional[dict] = None
     frozen: bool = False
+    frozenAt: str = ""  # 确切冻结时间（AddedBlackList 链上事件；未冻结/未知为空），前端申诉材料取用
     tags: List[str] = []
     timeline: List[TimelineItem] = []
     actionPlan: List[PlanItem] = []
@@ -807,6 +808,7 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
             "reasons": [b["label"] for b in score_breakdown],
         },
         frozen=is_frozen,
+        frozenAt=(get_frozen_at(address) if is_frozen else ""),
         tags=[t for t in [address_tag(address)] if t],
         timeline=timeline,
         actionPlan=action_plan,
