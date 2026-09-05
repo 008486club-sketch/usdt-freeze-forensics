@@ -208,6 +208,8 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
   <h2 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span data-i18n="addrLabel">诊断地址</span><button class="no-print" onclick="copyAddr()" title="Copy address" style="font-size:12px;padding:3px 10px;border:1px solid var(--g200);background:#fff;border-radius:6px;cursor:pointer;color:var(--g700)">📋 <span data-i18n="copyBtn">复制</span></button><button class="no-print" onclick="shareReport()" data-ua="share_click" title="Share report" style="font-size:12px;padding:3px 10px;border:1px solid var(--g200);background:#fff;border-radius:6px;cursor:pointer;color:var(--g700)">🔗 <span data-i18n="shareBtn">分享报告</span></button><button class="no-print" onclick="window.print()" title="Print / Save as PDF" style="font-size:12px;padding:3px 10px;border:1px solid var(--g200);background:#fff;border-radius:6px;cursor:pointer;color:var(--g700)">🖨️ <span data-i18n="printBtn">打印 / 存为 PDF</span></button></h2>
   <div class="addr" id="reportAddr">--</div>
   <div class="meta">
+    <span><span data-i18n="balTrx">TRX 余额</span>：<span data-meta-trx>--</span></span>
+    <span><span data-i18n="balUsdt">USDT 余额</span>：<span data-meta-usdt>--</span></span>
     <span><span data-i18n="metaCreated">创建时间</span>：<span data-meta-created>--</span></span>
     <span><span data-i18n="metaDb">冻结索引同步至</span>：<span data-meta-db>--</span></span>
 <span id="evRow" style="display:none"><span data-i18n="evEv">链上事件</span>：AddedBlackList · <span data-i18n="evTxL">证据交易</span> <a id="evTxLink" href="#" target="_blank" rel="noopener" style="font-family:monospace;font-size:12px"></a></span>
@@ -315,8 +317,8 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 </footer>
 
 <div class="toast" id="toast"></div>
-<script src="i18n.js?v=20260901a1"></script>
+<script src="i18n.js?v=20260901a2"></script>
 <script src="collect.js" defer></script>
-<script src="report-app.20260901a1.js" defer></script>
+<script src="report-app.20260901a2.js" defer></script>
 </body>
 </html>
