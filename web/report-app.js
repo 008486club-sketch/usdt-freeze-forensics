@@ -479,6 +479,14 @@ function loadReport(addr) {
   fetch(apiBase + '/api/report?address=' + encodeURIComponent(addr) + '&lang=' + currentLang)
     .then(r => r.json())
     .then(data => {
+      if (data && data.detail) {
+        /* 2026-09-06：404/错误 detail 显示（原 404 空白无提示）——EVM/无效 TRON 地址明确引导 */
+        const rb = document.getElementById('riskBanner');
+        if (rb) { rb.textContent = '⚠️ ' + data.detail; rb.className = 'risk-banner show b-amber'; }
+        const mnEl = document.getElementById('metaNote');
+        if (mnEl) mnEl.textContent = '⚠️ ' + data.detail;
+        return;
+      }
       if (data && data.score !== undefined) {
         updateScore(data.score);
         /* 评分依据（为什么是这个分数） */
