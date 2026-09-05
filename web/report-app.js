@@ -190,7 +190,7 @@ function genAppeal() {
     L.push('2. 申诉前请自行核实并整理完整交易背景证据（合同/聊天记录/物流单据等），通过交易所官方渠道提交。');
     L.push('3. 请勿相信任何付费解冻服务；付费解冻 = 诈骗。');
     L.push('');
-    L.push('USDT 冻结检测 · 越智通AI决策助手');
+    L.push('USDT Freeze Check');
   } else if (lang === 'vi') {
     L.push('VĂN BẢN KHIẾU NẠI ĐÓNG BĂNG USDT');
     L.push('（Tự động tạo · Dựa trên dữ liệu công khai chuỗi TRON · Chỉ để tham khảo, không phải tư vấn pháp lý）');
