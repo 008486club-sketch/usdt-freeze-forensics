@@ -25,8 +25,8 @@ deploy_backend() {
 }
 
 deploy_frontend() {
-  # 从 report.html 提取当前引用的 JS 版本（保证只传线上引用文件）
-  JS_VER=$(grep -o 'report-app\.[0-9]*[a-z]\.js' "$LOCAL_REPO/web/report.html" | head -1)
+  # 从 report.html 提取当前引用的 JS 版本（保证只传线上引用文件；2026-09-06 修 regex 支持数字尾缀 a0）
+  JS_VER=$(grep -o 'report-app\.[0-9a-z]*\.js' "$LOCAL_REPO/web/report.html" | head -1)
   FILES=("report.html" "index.html" "deep.html" "i18n.js" "collect.js" "$JS_VER" "og-cover.png" "tip-qr.png" "faq.html")
   echo "--- 前端(${JS_VER}) → 广州 ---"
   for f in "${FILES[@]}"; do
