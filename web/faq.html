@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDT 冻结常见问题 FAQ | USDT Freeze Check</title>
+<meta name="description" content="USDT 被冻结怎么办？什么是 Tether 黑名单？冻结后还能收款吗？如何申诉？USDT Freeze Check 常见问题解答，基于 TRON 链上公开数据。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="USDT Freeze Check">
+<meta property="og:title" content="USDT 冻结常见问题 FAQ | 被冻结了怎么办">
+<meta property="og:description" content="USDT 冻结是什么、为什么被冻结、冻结后能否收款、如何申诉——常见问题解答。">
+<meta property="og:image" content="https://yuezhitong.com/usdt-check/og-cover.png">
+<meta property="og:url" content="https://yuezhitong.com/usdt-check/faq.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://yuezhitong.com/usdt-check/faq.html">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#111827;background:#f0f4fa;line-height:1.7}
+a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}
+.nav{background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10}
+.nav-in{max-width:860px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:#1a3a6b}
+.container{max-width:860px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:28px;color:#1a3a6b;margin:8px 0 4px}
+.sub{color:#6b7280;margin-bottom:24px}
+.faq{border:1px solid #e5e7eb;border-radius:12px;background:#fff;margin-bottom:14px;overflow:hidden}
+.q{padding:14px 18px;font-weight:600;font-size:16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:#1a3a6b}
+.q .arr{color:#9ca3af;transition:transform .2s}
+details[open] .arr{transform:rotate(180deg)}
+.a{padding:0 18px 16px;color:#374151;font-size:15px}
+.a p{margin-bottom:10px}
+.a ul{margin:6px 0 10px 20px}
+.a li{margin-bottom:6px}
+.cta{margin-top:28px;text-align:center;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:22px}
+.btn{display:inline-block;background:#2563eb;color:#fff;padding:12px 26px;border-radius:8px;font-weight:600;font-size:15px}
+.btn:hover{background:#1d4ed8;text-decoration:none}
+.warn{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-top:14px;color:#991b1b;font-size:14px}
+footer{margin-top:30px;text-align:center;color:#9ca3af;font-size:13px}
+@media(max-width:600px){h1{font-size:22px}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+<div class="nav-brand">🔍 USDT Freeze Check</div>
+<a href="./" style="font-size:14px">← 返回检测工具</a>
+</div></nav>
+
+<div class="container">
+<h1>USDT 冻结常见问题（FAQ）</h1>
+<p class="sub">关于 USDT（TRON/TRC-20）冻结的常见疑问——基于公开链上数据与通用申诉流程整理，不构成法律意见。</p>
+
+<details class="faq" open>
+<summary class="q">1. USDT 被冻结是什么意思？<span class="arr">▾</span></summary>
+<div class="a">
+<p>USDT（Tether）发行方可以在合约层面将某个地址加入黑名单（<strong>BlackList</strong>）。一旦被加入：</p>
+<ul>
+<li>该地址的 USDT <strong>无法转出 / 无法赎回</strong></li>
+<li>但通常<strong>仍可接收入账</strong>（冻结只限制转出）——入账会继续累积在地址上</li>
+</ul>
+<p>冻结决定权在 Tether 及其配合的司法/监管机构。地址被冻结 ≠ 链上数据消失，所有历史交易仍可公开查询。</p>
+</div>
+</details>
+
+<details class="faq">
+<summary class="q">2. 为什么会被冻结？<span class="arr">▾</span></summary>
+<div class="a">
+<p>Tether 官方不公开每个地址的冻结原因。根据公开案例，常见触发场景包括（仅作参考，不代表您的情况）：</p>
+<ul>
+<li>地址与受制裁实体 / 高风险交易所 / 混币服务有资金往来</li>
+<li>收到被标记为诈骗、赌博、勒索等来源的资金（间接牵连）</li>
+<li>司法冻结（法院 / 执法机构要求）</li>
+</ul>
+<p class="warn">⚠️ 重要：与高风险地址发生过交易 ≠ 您有错，也不代表 Tether 认定您违规。资金关系与冻结因果是两回事，需要逐笔核实。</p>
+</div>
+</details>
+
+<details class="faq">
+<summary class="q">3. 怎么查自己是否被冻结？<span class="arr">▾</span></summary>
+<div class="a">
+<p>两步自查：</p>
+<ul>
+<li><strong>官方合约查询</strong>：调用 USDT 合约 <code>isBlackListed(地址)</code>——返回 true 即当前处于冻结状态</li>
+<li><strong>本工具</strong>：输入 TRON 地址即可秒查冻结状态、<strong>确切冻结时间</strong>（链上 AddedBlackList 事件）、风险评分与资金流向</li>
+</ul>
+<p><a href="./">→ 立即检测地址</a>（免费，无需注册）</p>
+</div>
+</details>
+
+<details class="faq">
+<summary class="q">4. 冻结后还能收款吗？<span class="arr">▾</span></summary>
+<div class="a">
+<p>通常<strong>可以入账，不能转出</strong>。冻结是单方向限制：资金可以打进来，但无法转走或兑换。因此冻结后收到的钱会一直留在地址里，直到解冻。</p>
+<p>这也会造成一个常见误解：账户余额一直在涨（冻结后入账），看起来"还在用"，实际是只进不出。</p>
+</div>
+</details>
+
+<details class="faq">
+<summary class="q">5. 被冻结了怎么申诉？<span class="arr">▾</span></summary>
+<div class="a">
+<p>通用申诉路径（具体以您开户的交易所 / 钱包方要求为准）：</p>
+<ol style="margin-left:20px">
+<li><strong>收集证据</strong>：整理与各对手方交易的完整背景（合同、聊天记录、订单、物流），证明交易真实合法</li>
+<li><strong>准备 KYC</strong>：更新交易所实名信息，保证与链上行为一致</li>
+<li><strong>提交工单</strong>：通过交易所官方渠道申诉，附上链上流水与说明（可用本工具生成申诉说明 / 打印 PDF）</li>
+<li><strong>法律途径</strong>：如被拒，考虑委托律师或向监管机构反映；保留全部沟通记录</li>
+</ol>
+<p class="warn">⚠️ 警惕任何"付费解冻"服务——真正的解冻只能由 Tether / 司法机构执行，第三方声称付费可解冻的<strong>基本都是诈骗</strong>。</p>
+</div>
+</details>
+
+<details class="faq">
+<summary class="q">6. 深度报告和 CSV 是什么？<span class="arr">▾</span></summary>
+<div class="a">
+<p>快速检测基于 TronGrid <strong>最近 100 笔抽样</strong>，适合初步判断。如需<strong>全量资金分析</strong>（全部历史流水、逐笔对手方、净额核算），请：</p>
+<ul>
+<li>在 TronScan 导出该地址的 CSV（tokenTransfer 或 transaction 均可）</li>
+<li>上传到本工具 → 生成深度报告（免费）</li>
+</ul>
+</div>
+</details>
+
+<details class="faq">
+<summary class="q">7. 本工具的数据准确吗？<span class="arr">▾</span></summary>
+<div class="a">
+<p>冻结状态直接调用 <strong>USDT 合约 isBlackListed</strong>（官方权威）；冻结时间来自<strong>链上 AddedBlackList 事件</strong>（可交叉验证 TronScan / 第三方工具）。风险标签与异常提示基于公开资料自动匹配，仅供排查参考，不代表 Tether 或司法机关认定。</p>
+</div>
+</details>
+
+<div class="cta">
+<p style="margin-bottom:12px;color:#374151">不确定你的地址是否被冻结？直接查一下：</p>
+<a class="btn" href="./">🔍 免费检测 USDT 冻结状态</a>
+</div>
+
+<footer>
+<p>USDT Freeze Check · 基于 TRON 链上公开数据 · 本服务不构成法律意见，不提供付费解冻服务</p>
+</footer>
+</div>
+</body>
+</html>
