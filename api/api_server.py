@@ -389,6 +389,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "note_sample": "数据来自 TronGrid 公开 API（最近100笔 USDT 抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
             "note_no_usdt": "该地址 USDT (TRC-20) 交易为 0 笔；链上总交易 {n} 笔（TRX 转账/合约交互等，非 USDT）。USDT 冻结检测只统计 USDT，0 笔为真实状态。",
             "note_trc20_down": "TRC-20 交易查询暂不可用（链上服务波动），冻结状态与账户信息仍有效。请稍后重试，或上传 CSV 生成深度报告。",
+            "note_window_full": "⚠️ 该地址交易活跃，最近 100 笔已占满抽样窗口，更早历史中可能存在未检查的关联（含与被冻结/高危地址的往来）。如需全量核查，请上传 TronScan CSV 生成深度报告，或查看 TronScan 完整交易记录。",
             "bd_base": "基础分",
             "bd_addr_feat": "地址特征：{tag}",
             "bd_big_in": "大额转入{n}笔",
@@ -456,7 +457,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_normal_desc": "Điểm rủi ro {score}/100 (thấp), chưa bị đóng băng. Sử dụng bình thường, tránh giao dịch với địa chỉ đen.",
             "note_sample": "Dữ liệu từ TronGrid công khai (mẫu 100 GD USDT gần nhất, không đầy đủ). Tổng/đầu/cuối chỉ là cửa sổ mẫu; cần phân tích đầy đủ dùng báo cáo chuyên sâu (CSV).",
             "note_no_usdt": "Địa chỉ có 0 giao dịch USDT (TRC-20); tổng giao dịch trên chuỗi {n} (TRX/hợp đồng, không phải USDT). Công cụ chỉ thống kê USDT, 0 là trạng thái thật.",
-            "note_trc20_down": "Truy vấn giao dịch TRC-20 tạm không khả dụng (dịch vụ chuỗi dao động), trạng thái đóng băng và thông tin tài khoản vẫn hợp lệ. Vui lòng thử lại sau hoặc tải CSV để phân tích chuyên sâu.",
+            "note_trc20_down": "Truy vấn giao dịch TRC-20 tạm không khả dụng (dịch vụ chuỗi dao động), trạng thái đóng băng và thông tin tài khoản vẫn có hiệu lực. Vui lòng thử lại sau, hoặc tải CSV để tạo báo cáo chuyên sâu.",
+            "note_window_full": "⚠️ Địa chỉ này giao dịch sôi động, 100 GD gần nhất đã lấp đầy cửa sổ mẫu; trong lịch sử sớm hơn có thể tồn tại mối liên hệ chưa được kiểm tra (kể cả với địa chỉ bị đóng băng/rủi ro cao). Để rà soát đầy đủ, vui lòng tải CSV TronScan tạo báo cáo chuyên sâu hoặc xem toàn bộ giao dịch trên TronScan.",
             "bd_base": "Điểm cơ bản",
             "bd_addr_feat": "Đặc điểm địa chỉ: {tag}",
             "bd_big_in": "Chuyển vào lớn {n} GD",
@@ -524,7 +526,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_normal_desc": "Risk score {score}/100 (low), not frozen. Normal use; just avoid dealings with suspected black-market addresses.",
             "note_sample": "Data from TronGrid public API (sampled last 100 USDT, not full). Totals/first/last are sampled-window only; use CSV deep report for full analysis.",
             "note_no_usdt": "This address has 0 USDT (TRC-20) transactions; on-chain total {n} (TRX/contract interactions, not USDT). Tool only counts USDT; 0 is the true state.",
-            "note_trc20_down": "TRC-20 transaction query is temporarily unavailable (chain service fluctuation); freeze status and account info remain valid. Retry later or upload a CSV for a deep report.",
+            "note_trc20_down": "TRC-20 transaction query is temporarily unavailable (chain service fluctuation); frozen status and account info remain valid. Please retry shortly, or upload a CSV for a deep report.",
+            "note_window_full": "⚠️ This address is actively trading and the 100-tx sample window is full — earlier history may contain unchecked links (including to frozen/high-risk addresses). For a full check, upload a TronScan CSV for a deep report, or view the complete history on TronScan.",
             "bd_base": "Base Score",
             "bd_addr_feat": "Address trait: {tag}",
             "bd_big_in": "Large inflow x{n}",
@@ -943,6 +946,11 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
         note = T["note_trc20_down"]
     elif not trc20 and chain_activity.get("total_tx"):
         note = T["note_no_usdt"].format(n=chain_activity.get("total_tx"))
+
+    # 2026-09-06 方案1（用户拍板）：抽样窗口被占满（=必有更早历史未被检查）→ 追加引导提示
+    # 防止活跃地址（如 TDtyzAk 3000+ 笔/高频）显示"看起来干净"而实际更早存在被冻/高危往来
+    if trc20 and len(trc20) >= 100:
+        note += " " + T["note_window_full"]
 
     return ReportResponse(
         address=address,
