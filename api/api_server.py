@@ -287,6 +287,8 @@ class ReportResponse(BaseModel):
     freezeStatus: Optional[dict] = None
     frozen: bool = False
     frozenAt: str = ""  # 确切冻结时间（AddedBlackList 链上事件；未冻结/未知为空），前端申诉材料取用
+    trxBalance: float = 0.0  # 当前 TRX 余额（sun/1e6，2026-09-06 用户需求：查询报告显示余额）
+    usdtBalance: float = 0.0  # 当前 USDT TRC-20 余额（1e6，冻结地址为冻结时冻结的存量，仅显示不可动）
     frozenAtTx: str = ""  # 冻结证据交易（AddedBlackList 事件的 64-hex tx_id，2026-09-06 证据链强化）
     frozenUnknown: bool = False  # True = 实时 isBlackListed 查询失败（TronGrid 波动），不得显示"未冻结"
     indexFrozen: bool = False  # frozenUnknown 时本地索引辅助：最后事件为 AddedBlackList
@@ -625,6 +627,18 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     account = api.get_account(address)
     if "error" in account:
         raise HTTPException(status_code=404, detail=f"地址查询失败: {account['error']}")
+    # 当前余额（TRX = balance sun/1e6；USDT = account.trc20 中 USDT 合约余额/1e6）
+    # 2026-09-06 用户需求：报告显示地址当前余额（冻结地址的 USDT 为冻结存量，仅展示不可动）
+    trx_balance = 0.0
+    usdt_balance = 0.0
+    try:
+        trx_balance = float(account.get("balance", 0)) / 1_000_000
+        for _t in account.get("trc20", []) or []:
+            if USDT_CONTRACT in _t:
+                usdt_balance = float(_t[USDT_CONTRACT]) / 1_000_000
+                break
+    except (TypeError, ValueError):
+        pass  # 余额解析失败不阻塞报告（保持 0）
 
     # 2. TRC-20 记录（最近 100 笔 USDT；TronGrid 为权威 USDT 交易源）
     # 2026-09-01 教训：TE7jHEK 有 418 笔链上交易但全部是 TRX(contractType=2)，USDT=0 是真实状态
@@ -967,6 +981,8 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
         },
         frozen=is_frozen,
         frozenAt=(get_frozen_at(address) if is_frozen else ""),
+        trxBalance=trx_balance,
+        usdtBalance=usdt_balance,
         frozenAtTx=(ev.get("tx_id", "") if (is_frozen and ev.get("found")) else ""),
         frozenUnknown=bl_unknown,
         indexFrozen=bool(bl_unknown and ev.get("found") and ev.get("last_ev") == "AddedBlackList"),
