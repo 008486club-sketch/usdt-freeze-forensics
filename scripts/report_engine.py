@@ -406,8 +406,11 @@ def render_markdown(rep):
         finds.append("② 最大单笔资金{inout} {amt}（对手方 {cp}）".format(
             inout="流入" if b["to"].lower() == tgt else "流出", amt=_fmt_amt(b["val"]), cp=_addr_short(b["from"] if b["to"].lower() == tgt else b["to"])))
     if rep["funding"]:
-        finds.append("③ 资金主要来自 {n} 个地址（最大来源占比 {p:.1f}%）".format(
-            n=len(rep["funding"]), p=rep["funding"][0]["pct"] if rep["funding"][0]["pct"] <= 100 else 100))
+        f0 = rep["funding"][0].get("asset", "USDT")
+        f_major = rep["funding"] if f0 != "TRX" else [d for d in rep["funding"] if (d.get("amt") or 0) >= 1.0]
+        if f_major:
+            finds.append("③ 资金主要来自 {n} 个地址（最大来源占比 {p:.1f}%）".format(
+                n=len(f_major), p=min(f_major[0]["pct"], 100)))
     if rep["dlg"]["delegate"] + rep["dlg"]["undelegate"] > 0:
         finds.append("④ 存在 {n} 次资源委托/解除操作".format(n=rep["dlg"]["delegate"] + rep["dlg"]["undelegate"]))
     if rep["adjacent"]:
@@ -481,35 +484,73 @@ def render_markdown(rep):
 
     # ===== 4. 资金来源 TOP =====
     if rep["funding"]:
-        asset = rep["funding"][0].get("asset", "USDT")
+        asset0 = rep["funding"][0].get("asset", "USDT")
+        # 2026-09-06 降噪：TRX 池只列 ≥1 TRX 的真来源，尘值聚合为脚注（0.000095 TRX 列进 Top Sources 污染报告）
+        if asset0 == "TRX":
+            f_show = [d for d in rep["funding"] if (d.get("amt") or 0) >= 1.0]
+            f_dust = [d for d in rep["funding"] if (d.get("amt") or 0) < 1.0]
+        else:
+            f_show = rep["funding"]
+            f_dust = []
+        asset = f_show[0].get("asset", "USDT") if f_show else asset0
         a("## 3. 资金来源（Top Funding Sources）")
         a("")
-        a("| 来源地址 | 金额 | 占比 | 笔数 | 冻结状态 |")
-        a("| --- | --- | --- | --- | --- |")
-        for d in rep["funding"][:10]:
-            cpf = rep["cp_freeze"].get((d["addr"] or "").lower())
-            cpf_s = "🔴 冻结" if cpf is True else ("🟢 未冻结" if cpf is False else "-")
-            a("| `{a}` | {v} {asset} | {p:.1f}% | {n} | {s} |".format(
-                a=_esc(d["addr"]), v=_fmt_amt(d["amt"]), asset=asset, p=d["pct"], n=d["n"], s=cpf_s))
+        if f_show:
+            a("| 来源地址 | 金额 | 占比 | 笔数 | 冻结状态 |")
+            a("| --- | --- | --- | --- | --- |")
+            for d in f_show[:10]:
+                cpf = rep["cp_freeze"].get((d["addr"] or "").lower())
+                cpf_s = "🔴 冻结" if cpf is True else ("🟢 未冻结" if cpf is False else "-")
+                a("| `{a}` | {v} {asset} | {p:.1f}% | {n} | {s} |".format(
+                    a=_esc(d["addr"]), v=_fmt_amt(d["amt"]), asset=asset, p=d["pct"], n=d["n"], s=cpf_s))
+            if f_dust:
+                dsum = sum(x["amt"] for x in f_dust)
+                dn = sum(x["n"] for x in f_dust)
+                a("| 其他 {n} 个小额来源 | {v} {asset} | - | {m} | - |".format(
+                    n=len(f_dust), v=_fmt_amt(dsum, 6), asset=asset, m=dn))
+            a("")
+            a("**来源集中度（B — 数据推导）**：最大资金来源占{asset}总流入 **{p:.1f}%**。".format(asset=asset, p=f_show[0]["pct"]))
+        else:
+            a("无 ≥1 TRX 的主要来源（其余为小额/尘值 TRX，不构成资金分析价值）。")
         a("")
-        a("**来源集中度（B — 数据推导）**：最大资金来源占{asset}总流入 **{p:.1f}%**。".format(asset=asset, p=rep["funding"][0]["pct"]))
-        a("")
+        if asset == "TRX":
+            a("> ⚠️ 本表为 **TRX 口径**（transaction CSV 不含 USDT 明细）。TRX 转账≠USDT 资金关系，勿据此推断资金往来。")
+            a("")
         a("---")
         a("")
 
     # ===== 5. 资金去向 TOP =====
     if rep["dest"]:
-        asset = rep["dest"][0].get("asset", "USDT")
+        asset0 = rep["dest"][0].get("asset", "USDT")
+        if asset0 == "TRX":
+            d_show = [d for d in rep["dest"] if (d.get("amt") or 0) >= 1.0]
+            d_dust = [d for d in rep["dest"] if (d.get("amt") or 0) < 1.0]
+        else:
+            d_show = rep["dest"]
+            d_dust = []
+        asset = d_show[0].get("asset", "USDT") if d_show else asset0
         a("## 4. 资金去向（Top Destinations）")
         a("")
-        a("| 去向地址 | 金额 | 占比 | 笔数 | 冻结状态 |")
-        a("| --- | --- | --- | --- | --- |")
-        for d in rep["dest"][:10]:
-            cpf = rep["cp_freeze"].get((d["addr"] or "").lower())
-            cpf_s = "🔴 冻结" if cpf is True else ("🟢 未冻结" if cpf is False else "-")
-            a("| `{a}` | {v} {asset} | {p:.1f}% | {n} | {s} |".format(
-                a=_esc(d["addr"]), v=_fmt_amt(d["amt"]), asset=asset, p=d["pct"], n=d["n"], s=cpf_s))
+        if d_show:
+            a("| 去向地址 | 金额 | 占比 | 笔数 | 冻结状态 |")
+            a("| --- | --- | --- | --- | --- |")
+            for d in d_show[:10]:
+                cpf = rep["cp_freeze"].get((d["addr"] or "").lower())
+                cpf_s = "🔴 冻结" if cpf is True else ("🟢 未冻结" if cpf is False else "-")
+                a("| `{a}` | {v} {asset} | {p:.1f}% | {n} | {s} |".format(
+                    a=_esc(d["addr"]), v=_fmt_amt(d["amt"]), asset=asset, p=d["pct"], n=d["n"], s=cpf_s))
+            if d_dust:
+                dsum = sum(x["amt"] for x in d_dust)
+                dn = sum(x["n"] for x in d_dust)
+                a("| 其他 {n} 个小额去向 | {v} {asset} | - | {m} | - |".format(
+                    n=len(d_dust), v=_fmt_amt(dsum, 6), asset=asset, m=dn))
+            a("")
+        else:
+            a("无 ≥1 TRX 的主要去向（其余为小额/尘值 TRX）。")
         a("")
+        if asset == "TRX":
+            a("> ⚠️ 本表为 **TRX 口径**（transaction CSV 不含 USDT 明细）。TRX 转账≠USDT 资金关系，勿据此推断资金往来。")
+            a("")
         a("---")
         a("")
 
