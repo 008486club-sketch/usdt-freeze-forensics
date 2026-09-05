@@ -33,7 +33,10 @@ zh: {
   a4t:"寻求法律支持",a4d:"如申诉被拒，考虑委托专业律师发函或向监管机构投诉。保留所有沟通记录作为证据。",
   tipL:"USDT-TRC20 打赏地址",tipC:"点击复制",
   footN:"本服务基于区块链公开数据，不提供法律建议。",
-  toastCopy:"地址已复制到剪贴板"
+  toastCopy:"地址已复制到剪贴板",
+  blUnk:"⚠️ 实时冻结状态暂时无法验证（链上服务波动）。结果基于本地索引与历史数据，请稍后重试。",
+  blUnkIdx:"⚠️ 实时冻结状态暂时无法验证；本地链上索引显示该地址曾被加入黑名单：{at}。请稍后重试以官方实时状态为准。",
+  evEv:"链上事件",evTxL:"证据交易"
 },
 vi: {
   brand:"Kiểm tra đóng băng USDT",addrLabel:"Địa chỉ chẩn đoán",
@@ -58,7 +61,10 @@ vi: {
   a4t:"Hỗ trợ pháp lý",a4d:"Nếu bị từ chối, xem xét thuê luật sư hoặc khiếu nại cơ quan quản lý.",
   tipL:"Địa chỉ USDT-TRC20",tipC:"Nhấn để sao chép",
   footN:"Dịch vụ dựa trên dữ liệu blockchain công khai, không phải tư vấn pháp lý.",
-  toastCopy:"Đã sao chép địa chỉ"
+  toastCopy:"Đã sao chép địa chỉ",
+  blUnk:"⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được (dịch vụ mạng lưới dao động). Kết quả dựa trên chỉ mục cục bộ và dữ liệu lịch sử, vui lòng thử lại sau.",
+  blUnkIdx:"⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được; chỉ mục cục bộ cho thấy địa chỉ này từng bị thêm vào danh sách đen: {at}. Vui lòng thử lại sau theo trạng thái chính thức.",
+  evEv:"Sự kiện trên chuỗi",evTxL:"Giao dịch bằng chứng"
 },
 en: {
   brand:"USDT Freeze Check",addrLabel:"Diagnosed Address",
@@ -83,7 +89,10 @@ en: {
   a4t:"Seek Legal Support",a4d:"If appeal is rejected, consider hiring a lawyer or filing with regulators. Keep all records.",
   tipL:"USDT-TRC20 Tip Address",tipC:"Click to copy",
   footN:"This service is based on public blockchain data and does not constitute legal advice.",
-  toastCopy:"Address copied to clipboard"
+  toastCopy:"Address copied to clipboard",
+  blUnk:"⚠️ Real-time frozen status is temporarily unverifiable (chain service fluctuation). Results are based on the local index and historical data — please retry shortly.",
+  blUnkIdx:"⚠️ Real-time frozen status is temporarily unverifiable; the local on-chain index shows this address was blacklisted: {at}. Please retry to confirm with the official real-time status.",
+  evEv:"On-chain event",evTxL:"Evidence transaction"
 }
 };
 
@@ -477,6 +486,24 @@ function loadReport(addr) {
           if (mc) mc.textContent = data.created;
           const mdb = document.querySelector('[data-meta-db]');
           if (mdb) mdb.textContent = data.dbUpdatedAt || '--';
+          /* 冻结证据交易（2026-09-06 证据链强化）：冻结地址显示 AddedBlackList 链上事件 + TronScan 证据交易链接 */
+          const evR = document.getElementById('evRow');
+          if (evR) {
+            const t9 = (I18N[currentLang] && I18N[currentLang]) || {};
+            if (data.frozen === true && data.frozenAtTx) {
+              const txid = String(data.frozenAtTx);
+              const txShort = txid.length > 20 ? txid.slice(0, 12) + '...' + txid.slice(-8) : txid;
+              const evA = document.getElementById('evTxLink');
+              if (evA) {
+                evA.href = 'https://tronscan.org/#/transaction/' + encodeURIComponent(txid);
+                evA.textContent = txShort;
+                evA.title = txid;
+              }
+              evR.style.display = 'inline';
+            } else {
+              evR.style.display = 'none';
+            }
+          }
           const mtx = document.querySelector('[data-meta-tx]');
           if (mtx) mtx.textContent = (data.txCount || 0).toLocaleString();
           if (data.transactions && data.transactions.length) {
@@ -516,14 +543,23 @@ function loadReport(addr) {
           const key = currentFrozen ? 'tlTitle' : 'tlTitleFree';
           tlTitleEl.textContent = t2[key] || (currentFrozen ? '冻结时间线' : '地址活动时间线');
         }
-        /* 风险横幅（OKLink 借鉴）：冻结/高危/中危/低危分级提示 */
+        /* 风险横幅（OKLink 借鉴）：冻结/高危/中危/低危分级提示；frozenUnknown=实时状态未知（琥珀警示，2026-09-06） */
         const rb = document.getElementById('riskBanner');
         if (rb) {
           const t3 = (I18N[currentLang] && I18N[currentLang]) || {};
           const frozen = data.frozen === true
             || (data.score !== undefined && data.score >= 90)
             || !!(data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length);
-          if (frozen) {
+          const fu = data.frozenUnknown === true;
+          if (fu) {
+            /* 实时 isBlackListed 查询失败：绝不显示绿色"低风险/未冻结"（假阴性），琥珀警示 + 本地索引辅助 */
+            const addrQ = encodeURIComponent(currentAddr || '');
+            let uTxt = t3.blUnk || '⚠️ Real-time frozen status is temporarily unverifiable. Please retry.';
+            if (data.indexFrozen && t3.blUnkIdx) uTxt = (t3.blUnkIdx || '').replace('{at}', data.frozenIndexAt || '');
+            rb.innerHTML = uTxt
+              + (addrQ ? `<br><a href="https://bl.dzen.ws/address/${addrQ}" target="_blank" rel="noopener" style="color:inherit;font-size:12px;opacity:.9;text-decoration:underline">${t3.bldzen || ''} bl.dzen.ws ⧉</a>` : '');
+            rb.className = 'risk-banner show b-amber';
+          } else if (frozen) {
             /* 冻结横幅 + 第三方复核链接（bl.dzen.ws，2026-09-05） */
             const addrQ = encodeURIComponent(currentAddr || '');
             const frozenText = t3.riskBannerFrozen || '🔒 该地址已被 Tether 冻结（高风险）';
