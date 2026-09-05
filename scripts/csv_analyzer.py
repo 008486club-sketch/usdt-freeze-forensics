@@ -271,13 +271,13 @@ def main():
         for a, v in sorted(out_c.items(), key=lambda x: -x[1])[:15]:
             print(f"  {a}: {out_n[a]}笔 {fmt(v)} U")
 
-    # 冻结/诈骗标记扫描（全列）
+    # 冻结/诈骗标记扫描（全列）——⚠️ 不含 "BL"：symbol=BL 是 TRC-10 垃圾币，不是冻结标记（铁律 #2，2026-09-06）
     print("")
-    print("=== 冻结/诈骗标记 ===")
+    print("=== 疑似冻结/诈骗代币（UNFREEZE/UNLOCK 等，非官方）===")
     found = 0
     for r in rows:
         sym = r.get("symbol", "")
-        if any(kw in sym.upper() for kw in ["UNFREEZE", "UNLOCK", "UNBANNED", "BL"]) \
+        if any(kw in sym.upper() for kw in ["UNFREEZE", "UNLOCK", "UNBANNED"]) \
            or any(kw in sym for kw in ["解封", "unfrozen"]):
             found += 1
             print(f"  {r.get('blockTime(UTC)', '?')}  {sym}  {r.get('value', '')}  "
@@ -286,23 +286,12 @@ def main():
         print("  （未发现冻结/诈骗标记代币）")
 
     if ctype == "transaction":
-        # BL 封条（TransferAssetContract 中的 BL）
+        # 非 USDT/TRX 代币（TRC-10，含 symbol=BL 垃圾币——非冻结标记）
         print("")
-        print("=== BL 封条记录 ===")
-        bl = [r for r in rows if r.get("symbol") == "BL"]
-        if bl:
-            for r in bl:
-                print(f"  {r.get('blockTime(UTC)', '?')}  BL {r.get('value', '')}  "
-                      f"来源:{r.get('from', '')}  Tx:{short_hash(r.get('Tx Hash', ''))}")
-        else:
-            print("  （本 CSV 未发现 BL 标记）")
-
-        # 非 USDT/TRX 代币（TRC-10）
-        print("")
-        print("=== 其他非标准代币 ===")
+        print("=== 其他 TRC-10 代币（含 symbol=BL 垃圾币，非 Tether 冻结标记）===")
         others = [(r.get('blockTime(UTC)', '?'), r.get('symbol', ''), r.get('value', ''),
                    r.get('from', '')[:12]) for r in rows
-                  if r.get("contractType") == "TransferAssetContract" and r.get("symbol") != "BL"]
+                  if r.get("contractType") == "TransferAssetContract" and r.get("symbol")]
         if others:
             for t, s, v, f in others:
                 print(f"  {t}  {s}  {v}  from:{f}")
