@@ -392,6 +392,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "note_no_usdt": "该地址 USDT (TRC-20) 交易为 0 笔；链上总交易 {n} 笔（TRX 转账/合约交互等，非 USDT）。USDT 冻结检测只统计 USDT，0 笔为真实状态。",
             "note_trc20_down": "TRC-20 交易查询暂不可用（链上服务波动），冻结状态与账户信息仍有效。请稍后重试，或上传 CSV 生成深度报告。",
             "note_window_full": "⚠️ 该地址交易活跃，最近 100 笔已占满抽样窗口，更早历史中可能存在未检查的关联（含与被冻结/高危地址的往来）。如需全量核查，请上传 TronScan CSV 生成深度报告，或查看 TronScan 完整交易记录。",
+            "err_evm": "该地址是 Ethereum/EVM 地址（0x 开头）。本站仅检测 TRON 链 USDT (TRC-20) 冻结状态，不支持 EVM 链。请粘贴 T 开头、共 34 位的 TRON 地址（如 TY...）。",
+            "err_not_tron": "这不是有效的 TRON 地址（TRON 地址以 T 开头、共 34 位）。请检查后重试。",
             "bd_base": "基础分",
             "bd_addr_feat": "地址特征：{tag}",
             "bd_big_in": "大额转入{n}笔",
@@ -461,6 +463,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "note_no_usdt": "Địa chỉ có 0 giao dịch USDT (TRC-20); tổng giao dịch trên chuỗi {n} (TRX/hợp đồng, không phải USDT). Công cụ chỉ thống kê USDT, 0 là trạng thái thật.",
             "note_trc20_down": "Truy vấn giao dịch TRC-20 tạm không khả dụng (dịch vụ chuỗi dao động), trạng thái đóng băng và thông tin tài khoản vẫn có hiệu lực. Vui lòng thử lại sau, hoặc tải CSV để tạo báo cáo chuyên sâu.",
             "note_window_full": "⚠️ Địa chỉ này giao dịch sôi động, 100 GD gần nhất đã lấp đầy cửa sổ mẫu; trong lịch sử sớm hơn có thể tồn tại mối liên hệ chưa được kiểm tra (kể cả với địa chỉ bị đóng băng/rủi ro cao). Để rà soát đầy đủ, vui lòng tải CSV TronScan tạo báo cáo chuyên sâu hoặc xem toàn bộ giao dịch trên TronScan.",
+            "err_evm": "Đây là địa chỉ Ethereum/EVM (bắt đầu 0x). Trang này chỉ kiểm tra trạng thái đóng băng USDT trên TRON (TRC-20), không hỗ trợ chuỗi EVM. Vui lòng dán địa chỉ TRON bắt đầu bằng T, dài 34 ký tự.",
+            "err_not_tron": "Đây không phải địa chỉ TRON hợp lệ (địa chỉ TRON bắt đầu bằng T, dài 34 ký tự). Vui lòng kiểm tra lại.",
             "bd_base": "Điểm cơ bản",
             "bd_addr_feat": "Đặc điểm địa chỉ: {tag}",
             "bd_big_in": "Chuyển vào lớn {n} GD",
@@ -530,6 +534,8 @@ def i18n_texts(lang: str = "zh") -> dict:
             "note_no_usdt": "This address has 0 USDT (TRC-20) transactions; on-chain total {n} (TRX/contract interactions, not USDT). Tool only counts USDT; 0 is the true state.",
             "note_trc20_down": "TRC-20 transaction query is temporarily unavailable (chain service fluctuation); frozen status and account info remain valid. Please retry shortly, or upload a CSV for a deep report.",
             "note_window_full": "⚠️ This address is actively trading and the 100-tx sample window is full — earlier history may contain unchecked links (including to frozen/high-risk addresses). For a full check, upload a TronScan CSV for a deep report, or view the complete history on TronScan.",
+            "err_evm": "This is an Ethereum/EVM address (starts with 0x). This tool only checks USDT frozen status on TRON (TRC-20) and does not support EVM chains. Please paste a TRON address starting with T (34 chars).",
+            "err_not_tron": "This is not a valid TRON address (TRON addresses start with T and are 34 chars). Please check and retry.",
             "bd_base": "Base Score",
             "bd_addr_feat": "Address trait: {tag}",
             "bd_big_in": "Large inflow x{n}",
@@ -626,6 +632,12 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     # 1. 账户信息
     account = api.get_account(address)
     if "error" in account:
+        # 2026-09-06：识别 EVM/非 TRON 地址给明确提示（原泛泛 Account not found 且前端空白无提示）
+        _a = (address or "").strip()
+        if _a.startswith("0x"):  # 0x 开头即 EVM 风格（完整 42 位或粘贴被截断均提示）
+            raise HTTPException(status_code=404, detail=T["err_evm"])
+        if not (_a.startswith("T") and len(_a) == 34):
+            raise HTTPException(status_code=404, detail=T["err_not_tron"])
         raise HTTPException(status_code=404, detail=f"地址查询失败: {account['error']}")
     # 当前余额（TRX = balance sun/1e6；USDT = account.trc20 中 USDT 合约余额/1e6）
     # 2026-09-06 用户需求：报告显示地址当前余额（冻结地址的 USDT 为冻结存量，仅展示不可动）
