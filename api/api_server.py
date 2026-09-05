@@ -100,6 +100,23 @@ def get_frozen_at(address: str) -> str:
         return fat + " UTC"
     return ""
 
+
+def get_freeze_index_updated() -> str:
+    """返回冻结索引已同步的最新链上事件时间（YYYY-MM-DD HH:MM UTC）或空串。
+    用于页面"数据新鲜度"展示（2026-09-05 GPT 建议）。"""
+    try:
+        import sqlite3
+        if os.path.exists(FREEZE_DB):
+            conn = sqlite3.connect(FREEZE_DB)
+            row = conn.execute("SELECT MAX(block_ts) FROM freeze_events").fetchone()
+            conn.close()
+            if row and row[0]:
+                return datetime.fromtimestamp(int(row[0]) / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M") + " UTC"
+    except Exception:
+        pass
+    return ""
+
+
 def cp_freeze_state(address: str):
     """查询对手方当前冻结状态（用 freeze_index 最后一条事件）。
     返回 (is_frozen_now: bool|None, last_added_ts_ms: int|None)。
@@ -244,6 +261,7 @@ class ReportResponse(BaseModel):
     freezeStatus: Optional[dict] = None
     frozen: bool = False
     frozenAt: str = ""  # 确切冻结时间（AddedBlackList 链上事件；未冻结/未知为空），前端申诉材料取用
+    dbUpdatedAt: str = ""  # 冻结索引已同步的最新链上事件时间（数据新鲜度展示）
     tags: List[str] = []
     timeline: List[TimelineItem] = []
     actionPlan: List[PlanItem] = []
@@ -822,6 +840,7 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
         },
         frozen=is_frozen,
         frozenAt=(get_frozen_at(address) if is_frozen else ""),
+        dbUpdatedAt=get_freeze_index_updated(),
         tags=[t for t in [address_tag(address)] if t],
         timeline=timeline,
         actionPlan=action_plan,
