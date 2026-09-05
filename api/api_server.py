@@ -180,6 +180,7 @@ def check_usdt_blacklist(address: str) -> bool:
             return raw.endswith("01") or int(raw, 16) == 1
         return False
     except Exception:
+        # TronGrid 调用失败（429/网络）→ 返回 False=未冻结。⚠️ 降级语义：网络失败可能造成假阴性（冻结显示未冻结），调用方无重试/未知态区分
         return False
 
 app = FastAPI(title="USDT Freeze Forensics API", version="1.0.0")
