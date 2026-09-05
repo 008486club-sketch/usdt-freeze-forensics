@@ -44,6 +44,16 @@ function startDiag() {
     setTimeout(() => document.getElementById('addrIn').style.borderColor = '', 1500);
     return;
   }
+  const I = I18N[currentLang] || {};
+  /* 2026-09-06：EVM/非 TRON 地址提前拦截（0x 开头 = Ethereum 等 EVM 链） */
+  if (addr.startsWith('0x') || addr.length === 42) {
+    showToast(I.errEvmIdx || '⚠️ This is an Ethereum/EVM address. This tool only supports TRON (TRC-20).');
+    return;
+  }
+  if (!addr.startsWith('T') || addr.length !== 34) {
+    showToast(I.errNotTronIdx || '⚠️ Not a valid TRON address (starts with T, 34 chars).');
+    return;
+  }
   showToast(I18N[currentLang].toastDiag || 'Analyzing...');
   /* TODO: integrate with backend API */
   /* fetch('/api/report?address=' + encodeURIComponent(addr))
