@@ -21,7 +21,7 @@ zh: {
   tl4t:"地址被标记冻结",tl4d:"交易所收到链上风控警报，限制该地址提币和交易",
   tl5t:"冻结后",tl5d:"地址被冻结后的状态与后续交易由 API 实时生成",
   flowTitle:"资金流向（TOP 对手方）",legIn:"转入",legOut:"转出",
-  txTitle:"关键交易记录",txTime:"时间",txDir:"方向",txAmt:"金额 (USDT)",txCp:"对手方",txHash:"TxHash",
+  txTitle:"关键交易记录",txTime:"时间",txDir:"方向",txAmt:"金额 (USDT)",txCp:"对手方",txHash:"TxHash",txFull:"🔗 在 TronScan 查看完整交易记录（官方）",
   dirIn:"转入",dirOut:"转出",flagWarn:"⚠ 异常",
   flagListT:"⚠ 异常交易提示（自动识别，仅供排查参考）",flagDisc:"以下交易由系统根据公开风险标签库与链上冻结状态自动匹配标出，仅供排查线索参考；不代表 Tether 或司法机关的官方认定，不构成法律意见。如需用于申诉，请自行核实并保留完整交易背景证据。",
   appealT:"申诉建议",
@@ -45,7 +45,7 @@ vi: {
   tl4t:"Địa chỉ bị đóng băng",tl4d:"Sàn nhận cảnh báo rủi ro, hạn chế rút và giao dịch",
   tl5t:"Sau đóng băng",tl5d:"Trạng thái sau đóng băng được tạo tự động từ API",
   flowTitle:"Dòng tiền (TOP đối tác)",legIn:"Chuyển vào",legOut:"Chuyển ra",
-  txTitle:"Giao dịch quan trọng",txTime:"Thời gian",txDir:"Hướng",txAmt:"Số tiền (USDT)",txCp:"Đối tác",txHash:"TxHash",
+  txTitle:"Giao dịch quan trọng",txTime:"Thời gian",txDir:"Hướng",txAmt:"Số tiền (USDT)",txCp:"Đối tác",txHash:"TxHash",txFull:"🔗 Xem toàn bộ giao dịch trên TronScan (chính thức)",
   dirIn:"Vào",dirOut:"Ra",flagWarn:"⚠ Bất thường",
   flagListT:"⚠ Giao dịch bất thường (tự động nhận diện, chỉ để tham khảo)",flagDisc:"Các giao dịch dưới đây được hệ thống tự động đối chiếu từ nhãn rủi ro công khai và trạng thái đóng băng trên chuỗi, chỉ mang tính tham khảo để điều tra; không phải kết luận chính thức của Tether hay cơ quan chức năng, không phải tư vấn pháp lý. Nếu dùng cho khiếu nại, vui lòng tự xác minh và lưu giữ bằng chứng đầy đủ.",
   appealT:"Gợi ý khiếu nại",
@@ -69,7 +69,7 @@ en: {
   tl4t:"Address Flagged & Frozen",tl4d:"Exchange received on-chain risk alert, restricted withdrawals and trading",
   tl5t:"Post-freeze",tl5d:"Post-freeze status generated live from API",
   flowTitle:"Fund Flow (TOP Counterparties)",legIn:"Inflow",legOut:"Outflow",
-  txTitle:"Key Transactions",txTime:"Time",txDir:"Direction",txAmt:"Amount (USDT)",txCp:"Counterparty",txHash:"TxHash",
+  txTitle:"Key Transactions",txTime:"Time",txDir:"Direction",txAmt:"Amount (USDT)",txCp:"Counterparty",txHash:"TxHash",txFull:"🔗 View full transaction history on TronScan (official)",
   dirIn:"IN",dirOut:"OUT",flagWarn:"⚠ Flagged",
   flagListT:"⚠ Flagged transactions (auto-detected, for reference only)",flagDisc:"The transactions below were auto-matched by the system from public risk tags and on-chain freeze status for investigation reference only; they are not official determinations by Tether or any authority, and do not constitute legal advice. If used for an appeal, please verify independently and retain full evidence of the transaction context.",
   appealT:"Appeal Recommendations",
@@ -361,6 +361,14 @@ function loadReport(addr) {
             const ml = document.querySelector('[data-meta-last]');
             if (ml) ml.textContent = data.transactions[0].time;
           }
+        }
+        /* 完整交易记录链接：跳 TronScan 官方 transfers tab（聚合 TRX/TRC-20/TRC-10 全量，含尘埃交易） */
+        const txl = document.getElementById('txFullLink');
+        if (txl && currentAddr) {
+          const t6 = I18N[currentLang] || {};
+          txl.href = 'https://tronscan.org/#/address/' + encodeURIComponent(currentAddr) + '/transfers';
+          txl.textContent = t6.txFull || '🔗 View full transaction history on TronScan (official)';
+          txl.style.display = 'inline-block';
         }
         /* 复用 MOCK 为当前数据容器（渲染函数只读 MOCK 单一数据源；空壳=数据未加载态，勿删） */
         MOCK.counterparties = data.counterparties || [];
