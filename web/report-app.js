@@ -390,9 +390,7 @@ function loadReport(addr) {
           const txt2 = t4[key] || fb2[key];
           if (txt2) vb.textContent = txt2;
         }
-        if (data.freezeStatus && data.freezeStatus.flags && data.freezeStatus.flags.length) {
-          console.log('Freeze flags:', data.freezeStatus.flags);
-        }
+        /* freezeStatus.flags 已用于冻结横幅/评分依据展示，无需 console 调试输出（2026-09-05 清理） */
       }
     })
     .catch(err => {
