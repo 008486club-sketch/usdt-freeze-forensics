@@ -31,7 +31,9 @@ zh: {
   cMail:"📧 邮件咨询", cDeep:"📊 深度报告（CSV 全量）",
   footN:"本服务基于区块链公开数据，不提供法律建议。",
   toastCopy:"地址已复制到剪贴板",
-  toastDiag:"正在分析地址，请稍候..."
+  toastDiag:"正在分析地址，请稍候...",
+  errEvmIdx:"⚠️ 这是 Ethereum/EVM 地址（0x 开头）。本站仅检测 TRON 链 USDT (TRC-20) 冻结状态，不支持 EVM 链。请粘贴 T 开头、34 位的 TRON 地址。",
+  errNotTronIdx:"⚠️ 这不是有效的 TRON 地址（TRON 地址以 T 开头、共 34 位）。请检查后重试。"
 },
 vi: {
   brand:"Kiểm tra đóng băng USDT",
@@ -64,7 +66,9 @@ vi: {
   cMail:"📧 Email", cDeep:"📊 Báo cáo sâu (CSV đầy đủ)",
   footN:"Dịch vụ dựa trên dữ liệu blockchain công khai, không phải tư vấn pháp lý.",
   toastCopy:"Đã sao chép địa chỉ",
-  toastDiag:"Đang phân tích địa chỉ..."
+  toastDiag:"Đang phân tích địa chỉ...",
+  errEvmIdx:"⚠️ Đây là địa chỉ Ethereum/EVM (0x). Trang này chỉ kiểm tra USDT đóng băng trên TRON (TRC-20), không hỗ trợ EVM. Vui lòng dán địa chỉ TRON (T + 34 ký tự).",
+  errNotTronIdx:"⚠️ Đây không phải địa chỉ TRON hợp lệ (bắt đầu T, 34 ký tự). Vui lòng kiểm tra lại."
 },
 en: {
   brand:"USDT Freeze Check",
@@ -97,6 +101,8 @@ en: {
   cMail:"📧 Email", cDeep:"📊 Deep Report (Full CSV)",
   footN:"This service is based on public blockchain data and does not constitute legal advice.",
   toastCopy:"Address copied to clipboard",
-  toastDiag:"Analyzing address, please wait..."
+  toastDiag:"Analyzing address, please wait...",
+  errEvmIdx:"⚠️ This is an Ethereum/EVM address (starts with 0x). This tool only checks TRON-chain USDT (TRC-20) freeze status and does not support EVM chains. Please paste a TRON address starting with T (34 chars).",
+  errNotTronIdx:"⚠️ This is not a valid TRON address (TRON addresses start with T, 34 chars). Please check and retry."
 }
 };
