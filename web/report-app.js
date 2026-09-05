@@ -486,6 +486,9 @@ function loadReport(addr) {
           if (mc) mc.textContent = data.created;
           const mdb = document.querySelector('[data-meta-db]');
           if (mdb) mdb.textContent = data.dbUpdatedAt || '--';
+          /* 后端动态 note（抽样降级/窗口占满引导 2026-09-06 方案1）：覆盖静态占位文案 */
+          const mnEl = document.getElementById('metaNote');
+          if (mnEl && data.note) mnEl.textContent = data.note;
           /* 冻结证据交易（2026-09-06 证据链强化）：冻结地址显示 AddedBlackList 链上事件 + TronScan 证据交易链接 */
           const evR = document.getElementById('evRow');
           if (evR) {
