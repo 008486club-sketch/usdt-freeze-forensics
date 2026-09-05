@@ -274,7 +274,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 
 <!-- Appeal Suggestions -->
 <div class="card">
-<h3>⚖️ <span data-i18n="appealT">申诉建议</span></h3>
+<h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">⚖️ <span data-i18n="appealT">申诉建议</span><button onclick="genAppeal()" title="Generate appeal text" style="font-size:12px;padding:3px 10px;border:1px solid var(--g200);background:#fff;border-radius:6px;cursor:pointer;color:var(--g700)"><span data-i18n="appealGen">📋 生成申诉说明（复制）</span></button></h3>
 <ul class="appeal-list">
   <li><div class="appeal-num">1</div><div class="appeal-text"><strong data-i18n="a1t">收集交易凭证</strong><p data-i18n="a1d">整理与高风险对手方交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。</p></div></li>
   <li><div class="appeal-num">2</div><div class="appeal-text"><strong data-i18n="a2t">准备 KYC 材料</strong><p data-i18n="a2d">更新交易所 KYC 信息，提供身份证明、地址证明、资金来源说明。确保与链上行为一致。</p></div></li>
@@ -300,6 +300,6 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 <div class="toast" id="toast"></div>
 <script src="i18n.js?v=20260901n"></script>
 <script src="collect.js" defer></script>
-<script src="report-app.20260901v.js" defer></script>
+<script src="report-app.20260901w.js" defer></script>
 </body>
 </html>
