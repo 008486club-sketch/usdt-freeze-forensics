@@ -1011,8 +1011,124 @@ def _md_escape(s: str) -> str:
     return str(s).replace("|", "\\|").replace("\n", " ")
 
 
+def _deep_forensics(raw: bytes, target_addr: str = "") -> dict:
+    """深度取证报告（2026-09-06 GPT 建议升级版）：CsvAnalyzer 解析 → report_engine 取证分析
+    （含链上官方冻结证据/资金源去向/冻结邻近/行为分级/证据清单）→ Markdown。
+    保留返回契约字段（ok/rows/fmt/target/start/end/usdt_*/marked_n/scam_n/dlg_n/markdown）供 deep.html 复用。"""
+    from csv_analyzer import CsvAnalyzer
+    from report_engine import analyze_csv_bytes
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tf:
+        tf.write(raw)
+        tmp_path = tf.name
+    try:
+        az = CsvAnalyzer(tmp_path, target_address=target_addr or None)
+        az.read()
+        az.process()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"CSV 解析失败: {e}")
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass  # 临时文件清理失败无害（系统临时目录会自回收）
+
+    fmt = az.fmt  # 'token_transfer' | 'transaction'
+    rows_n = len(az.rows)
+
+    # 目标地址：未指定时取出现最多的地址
+    if not target_addr:
+        cnt = defaultdict(int)
+        for r in az.rows:
+            cnt[r.get("from", "")] += 1
+            cnt[r.get("to", "")] += 1
+        target_addr = max(cnt, key=cnt.get) if cnt else ""
+    tgt_l = target_addr.lower()
+
+    # 时间范围（全行）
+    times = sorted([r.get("blockTime(UTC)", "") for r in az.rows if r.get("blockTime(UTC)")])
+    start = times[0] if times else "?"
+    end = times[-1] if times else "?"
+
+    # ===== 链上事实（外部调用全部 try 降级：失败不阻塞报告生成） =====
+    chain = {"is_blacklisted": None, "index_frozen": False, "cp_status": {}, "account_age_days": None}
+    # 1) 第一遍快速分析取对手方列表（纯本地计算）
+    from report_engine import analyze as eng_analyze
+    rep0 = eng_analyze(az.rows, fmt, target_addr)
+    top_cps = set()
+    for d in rep0.get("funding", [])[:10] + rep0.get("dest", [])[:10]:
+        a = (d.get("addr") or "").lower()
+        if len(a) == 34 and a != tgt_l:
+            top_cps.add(a)
+    # 2) 官方冻结状态 + 冻结证据（本地索引优先；实时合约尝试）
+    try:
+        bl = check_usdt_blacklist(target_addr)  # True/False/None
+        chain["is_blacklisted"] = bl
+    except Exception:
+        chain["is_blacklisted"] = None
+    ev = freeze_evidence(target_addr)
+    if ev.get("found"):
+        chain["freeze_time"] = ev["first_added_time"]
+        chain["freeze_tx"] = ev.get("tx_id", "")
+        if ev.get("last_ev") == "AddedBlackList":
+            chain["index_frozen"] = True
+    else:
+        # 静态已知案例回退（FROZEN_AT）
+        fat = FROZEN_AT.get(target_addr)
+        if fat:
+            chain["freeze_time"] = fat + " UTC"
+            chain["index_frozen"] = True
+    chain["db_updated"] = get_freeze_index_updated()
+    # 3) 对手方冻结状态（本地索引 cp_freeze_state，最多 20 个；SQLite 快）
+    for a in top_cps:
+        try:
+            st = cp_freeze_state(a)
+            if st is not None:
+                chain["cp_status"][a] = st
+        except Exception:
+            pass
+    # 4) 账户年龄（TronGrid 可选；失败跳过）
+    try:
+        acc = TronAPI().get_account(target_addr)
+        if acc and "error" not in acc and acc.get("create_time"):
+            age_days = (datetime.now(timezone.utc) - datetime.fromtimestamp(int(acc["create_time"]) / 1000, tz=timezone.utc)).days
+            chain["account_age_days"] = age_days
+            chain["created"] = ts_to_str(acc.get("create_time", 0))
+    except Exception:
+        pass
+
+    # ===== 引擎分析 + 渲染 =====
+    rep, md = analyze_csv_bytes(az.rows, fmt, target_addr, chain=chain)
+
+    # 契约字段（deep.html 复用）
+    usdt_n = len(rep["flow"]["usdt"])
+    usdt_in = rep["flow"]["usdt_in"]
+    usdt_out = rep["flow"]["usdt_out"]
+    return {
+        "ok": True,
+        "rows": rows_n,
+        "fmt": fmt,
+        "target": target_addr,
+        "start": start,
+        "end": end,
+        "usdt_n": usdt_n,
+        "usdt_in": usdt_in,
+        "usdt_out": usdt_out,
+        "marked_n": 0,  # 2026-09-06: symbol=BL 为垃圾币非冻结标记（铁律#2），冻结标记概念废弃 → 恒 0
+        "scam_n": len(rep["scam"]),
+        "dlg_n": rep["dlg"]["delegate"] + rep["dlg"]["undelegate"],
+        "frozen": bool(chain["is_blacklisted"] is True or chain["index_frozen"]),
+        "frozenUnknown": chain["is_blacklisted"] is None and not chain["index_frozen"],
+        "frozenAt": chain.get("freeze_time", ""),
+        "frozenTx": chain.get("freeze_tx", ""),
+        "score": rep["risk"]["total"],
+        "risk": "high" if rep["risk"]["total"] >= 60 else ("mid" if rep["risk"]["total"] >= 30 else "low"),
+        "markdown": md,
+    }
+
+
 def _analyze_csv_bytes(raw: bytes, target_addr: str = "") -> dict:
-    """用 CsvAnalyzer 对上传的 CSV 做全量分析，返回结构化摘要 + Markdown 报告文本。"""
+    """已废弃（2026-09-06 由 _deep_forensics 取代）——保留仅供旧引用，勿新增调用。
+    历史实现：CsvAnalyzer 直写 Markdown（曾致 BL 垃圾币误标为冻结，现由 report_engine 修正）。"""
     from csv_analyzer import CsvAnalyzer
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tf:
         tf.write(raw)
@@ -1190,7 +1306,8 @@ async def deep_report(file: UploadFile = File(...), address: str = Query(None, d
     if not (file.filename or "").lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="请上传 .csv 文件（TronScan 导出格式）")
     # CSV 解析/分析是同步重活：丢线程池执行，避免阻塞 async 事件循环（2026-09-05 审查发现）
-    return await run_in_threadpool(lambda: _analyze_csv_bytes(raw, target_addr=address or ""))
+    # 2026-09-06 升级：_deep_forensics 取证报告引擎（官方证据/资金源去向/冻结邻近/证据清单）
+    return await run_in_threadpool(lambda: _deep_forensics(raw, target_addr=address or ""))
 
 
 # 静态文件挂载（放在 API 路由之后，避免覆盖 /api/*）
