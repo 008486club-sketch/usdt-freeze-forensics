@@ -40,6 +40,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 .risk-banner.b-high{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
 .risk-banner.b-mid{background:#fef9c3;color:#854d0e;border:1px solid #fde047}
 .risk-banner.b-low{background:#dcfce7;color:#166534;border:1px solid #86efac}
+.risk-banner.b-amber{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
 .cp-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;font-size:11px;background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb;vertical-align:middle}
 .cp-tag.warn{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
 .bd-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
@@ -209,6 +210,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
   <div class="meta">
     <span><span data-i18n="metaCreated">创建时间</span>：<span data-meta-created>--</span></span>
     <span><span data-i18n="metaDb">冻结索引同步至</span>：<span data-meta-db>--</span></span>
+<span id="evRow" style="display:none"><span data-i18n="evEv">链上事件</span>：AddedBlackList · <span data-i18n="evTxL">证据交易</span> <a id="evTxLink" href="#" target="_blank" rel="noopener" style="font-family:monospace;font-size:12px"></a></span>
     <span><span data-i18n="metaTx">抽样记录</span>：<span data-meta-tx>--</span> <span data-i18n="metaTxSuffix">笔（最近100笔）</span></span>
     <span><span data-i18n="metaFirst">抽样首笔</span>：<span data-meta-first>--</span></span>
     <span><span data-i18n="metaLast">抽样末笔</span>：<span data-meta-last>--</span></span>
@@ -313,8 +315,8 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 </footer>
 
 <div class="toast" id="toast"></div>
-<script src="i18n.js?v=20260901z"></script>
+<script src="i18n.js?v=20260901a0"></script>
 <script src="collect.js" defer></script>
-<script src="report-app.20260901z.js" defer></script>
+<script src="report-app.20260901a0.js" defer></script>
 </body>
 </html>
