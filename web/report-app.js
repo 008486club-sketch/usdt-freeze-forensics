@@ -1,4 +1,5 @@
-/* Report page logic + mock data */
+/* Report page logic + API 数据缓存
+   MOCK 变量历史命名保留：空壳占位（L7 铁律：禁止假数据）+ 复用为当前报告数据缓存（L330） */
 let currentLang = 'zh';
 let currentFrozen = null; /* 时间线标题状态：fetch 完成后 true/false；未加载 null → 显示"地址活动时间线" */
 let currentAddr = ''; /* 当前诊断地址：setLang 切换语言时重新请求后端（动态文案按语言返回） */
@@ -327,6 +328,7 @@ function loadReport(addr) {
             if (ml) ml.textContent = data.transactions[0].time;
           }
         }
+        /* 复用 MOCK 为当前数据容器（渲染函数只读 MOCK 单一数据源；空壳=数据未加载态，勿删） */
         MOCK.counterparties = data.counterparties || [];
         MOCK.transactions = data.transactions || [];
         MOCK.score = data.score;
