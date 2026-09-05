@@ -371,7 +371,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_appeal_materials": "整理申诉材料",
             "plan_appeal_materials_desc": "按清单准备：①与该地址关联交易的聊天记录/合同/发票/物流单据 ②KYC 材料 ③资金来源说明。证明交易背景真实合法，是申诉关键。",
             "plan_warn_scam": "警惕二次诈骗",
-            "plan_warn_scam_desc": "Tether 官方不会通过 TG 或链上备注联系你。收到 UNFREEZE/UNLOCK/解冻等假代币或私聊付费解冻，一律是诈骗。",
+            "plan_warn_scam_desc": "Tether 官方不会通过 TG 或链上备注联系你。收到 UNFREEZE/UNLOCK/解冻等假代币或私聊声称付费即可保证解冻，都是诈骗。",
             "plan_expect": "预期管理",
             "plan_expect_desc": "若地址有职业 OTC/高频过桥/高危对手方特征，解冻难度较高，申诉需充分证据并做好长期跟进准备。",
             "plan_find_source": "识别风险来源",
@@ -442,7 +442,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_appeal_materials": "Chuẩn bị hồ sơ khiếu nại",
             "plan_appeal_materials_desc": "Chuẩn bị: ①tin nhắn/hợp đồng/hóa đơn/chứng từ vận chuyển ②KYC ③giải trình nguồn tiền. Chứng minh giao dịch hợp pháp là chìa khóa.",
             "plan_warn_scam": "Cảnh giác lừa đảo thứ cấp",
-            "plan_warn_scam_desc": "Tether không liên hệ qua TG hay ghi chú trên chuỗi. UNFREEZE/UNLOCK/giải đóng băng giả hoặc nhắn tin đòi phí là lừa đảo.",
+            "plan_warn_scam_desc": "Tether không liên hệ qua TG hay ghi chú trên chuỗi. UNFREEZE/UNLOCK/giải đóng băng giả hoặc nhắn tin hứa chắc chắn mở khóa khi trả phí đều là lừa đảo.",
             "plan_expect": "Quản lý kỳ vọng",
             "plan_expect_desc": "Nếu địa chỉ có đặc điểm OTC chuyên nghiệp/trung chuyển nhanh/đối tác rủi ro, khả năng mở khóa thấp hơn, cần bằng chứng đầy đủ và kiên trì.",
             "plan_find_source": "Xác định nguồn rủi ro",
@@ -513,7 +513,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_appeal_materials": "Prepare Appeal Materials",
             "plan_appeal_materials_desc": "Prepare: ①chat/contract/invoice/shipping docs for related transactions ②KYC ③fund source statement. Proving legitimate background is key.",
             "plan_warn_scam": "Beware Secondary Scams",
-            "plan_warn_scam_desc": "Tether never contacts via TG or on-chain notes. UNFREEZE/UNLOCK/fake tokens or paid-unfreeze DMs are scams.",
+            "plan_warn_scam_desc": "Tether never contacts via TG or on-chain notes. UNFREEZE/UNLOCK/fake tokens, or DMs claiming paid service guarantees unfreezing, are scams.",
             "plan_expect": "Expectation Management",
             "plan_expect_desc": "If address shows professional OTC/high-frequency relay/high-risk counterparty traits, unfreeze is harder; appeal needs solid evidence and patience.",
             "plan_find_source": "Identify Risk Source",
@@ -1307,7 +1307,7 @@ def _analyze_csv_bytes(raw: bytes, target_addr: str = "") -> dict:
     a("- 本报告基于用户上传的 CSV 全量统计（非抽样），**可复核**。")
     a("- 结论区分「链上事实」与「推断」：金额/笔数/时间均为链上事实；触发原因等为推断。")
     a("- **时间邻近 ≠ 冻结因果**：冻结前大额入账 ≠ 冻结原因。")
-    a("- 如需申诉协助，请勿相信任何付费解冻服务；**付费解冻=诈骗**。")
+    a("- 如需申诉协助，请勿相信声称付费即可保证解冻的服务；**声称保证解冻的多为诈骗**（Tether 存在解冻机制，任何保证解冻的付费承诺都不可信）。")
     a("")
     a("---")
     a("")
