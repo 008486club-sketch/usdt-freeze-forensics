@@ -7,10 +7,37 @@ import time
 import json
 import sys
 import os
+import sqlite3
 from typing import Optional, Dict, Any, List
 
 TRONGRID_BASE = 'https://api.trongrid.io'
 USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'  # 真实 USDT 合约（已修正）
+
+# ===== 轻量 SQLite 查询缓存（2026-09-05 加：同地址重复查秒出，省 TronGrid 配额）=====
+# 策略：account/trc10 历史稳定 TTL 24h；trc20 抽样 6h；isBlackListed 当前状态【不缓存】
+CACHE_DB = os.environ.get("API_CACHE_DB", "/opt/usdt-forensics/api_cache.db")
+CACHE_TTL_ACCOUNT = 86400    # 24h：账户创建时间/地址元信息稳定
+CACHE_TTL_TRC20 = 21600      # 6h：抽样窗口随新交易变化，容忍半日延迟
+CACHE_TTL_TRC10 = 86400      # 24h：垃圾币持仓低频变化
+
+def _cache_get(key):
+    try:
+        c = sqlite3.connect(CACHE_DB, timeout=3)
+        row = c.execute("SELECT value FROM api_cache WHERE key=? AND expires_at>?", (key, int(time.time()))).fetchone()
+        c.close()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+def _cache_set(key, value, ttl):
+    try:
+        c = sqlite3.connect(CACHE_DB, timeout=3)
+        c.execute("CREATE TABLE IF NOT EXISTS api_cache(key TEXT PRIMARY KEY, value TEXT, expires_at INTEGER)")
+        c.execute("INSERT OR REPLACE INTO api_cache VALUES(?,?,?)", (key, value, int(time.time()) + ttl))
+        c.commit()
+        c.close()
+    except Exception:
+        pass
 
 
 class TronAPIError(Exception):
@@ -44,21 +71,38 @@ class TronAPI:
         self.session.headers['Accept'] = 'application/json'
         self.session.timeout = 30
 
-    def _get(self, endpoint, params=None, allow_400=False):
+    def _get(self, endpoint, params=None, allow_400=False, cache_key=None, cache_ttl=0):
         """GET 封装。allow_400=True 时 400（地址无效/链上不存在）返回 {} 而非抛异常，
-        由调用方转为友好错误（get_account → {'error': ...} → HTTP 404）。"""
+        由调用方转为友好错误（get_account → {'error': ...} → HTTP 404）。
+        cache_key/cache_ttl 给定后：先查 SQLite 缓存，命中直接返回；未命中请求成功(200)后回写。"""
+        if cache_key and cache_ttl:
+            hit = _cache_get(cache_key)
+            if hit is not None:
+                try:
+                    return json.loads(hit)
+                except Exception:
+                    pass  # 缓存损坏则重新请求
         url = f'{self.base_url}{endpoint}'
         def do_request():
             resp = self.session.get(url, params=params or {})
             if allow_400 and resp.status_code == 400:
-                return {}
+                return None  # None = 不缓存（地址无效不该长期缓存）
             resp.raise_for_status()
             return resp.json()
-        return retry_with_backoff(do_request)
+        data = retry_with_backoff(do_request)
+        if cache_key and cache_ttl and data is not None:
+            try:
+                _cache_set(cache_key, json.dumps(data), cache_ttl)
+            except Exception:
+                pass
+        if data is None:
+            return {}
+        return data
 
     def get_account(self, address):
         """Get account info (create time, balance, permissions)"""
-        data = self._get(f'/v1/accounts/{address}', allow_400=True)
+        data = self._get(f'/v1/accounts/{address}', allow_400=True,
+                         cache_key=f'acct:{address}', cache_ttl=CACHE_TTL_ACCOUNT)
         if not data or not data.get('data'):
             return {'error': 'Account not found', 'address': address}
         return data['data'][0]
@@ -66,13 +110,15 @@ class TronAPI:
     def get_trc20(self, address, contract=USDT_CONTRACT, limit=100, order_by='block_timestamp,desc'):
         """Get TRC-20 (USDT) transfer records"""
         params = {'contract_address': contract, 'limit': limit, 'order_by': order_by}
-        data = self._get(f'/v1/accounts/{address}/transactions/trc20', params)
+        data = self._get(f'/v1/accounts/{address}/transactions/trc20', params,
+                         cache_key=f'trc20:{address}:{contract}:{limit}:{order_by}', cache_ttl=CACHE_TTL_TRC20)
         return data.get('data', [])
 
     def get_trc10(self, address, limit=100):
         """Get TRC-10 token records (scam/spam tokens)"""
         params = {'limit': limit}
-        data = self._get(f'/v1/accounts/{address}/transactions/trc10', params)
+        data = self._get(f'/v1/accounts/{address}/transactions/trc10', params,
+                         cache_key=f'trc10:{address}:{limit}', cache_ttl=CACHE_TTL_TRC10)
         return data.get('data', [])
 
     def get_transactions(self, address, limit=100):
