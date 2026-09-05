@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.abspath(SCRIPTS_DIR))
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -338,6 +339,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_normal_desc": "风险评分 {score}/100（低风险），未被冻结。正常使用即可，注意不要与疑似黑产地址发生往来。",
             "note_sample": "数据来自 TronGrid 公开 API（最近100笔 USDT 抽样，非全量）。交易总数/首笔/末笔均为抽样窗口内数据，不代表地址全部历史；如需全量分析请使用 CSV 深度报告。",
             "note_no_usdt": "该地址 USDT (TRC-20) 交易为 0 笔；链上总交易 {n} 笔（TRX 转账/合约交互等，非 USDT）。USDT 冻结检测只统计 USDT，0 笔为真实状态。",
+            "note_trc20_down": "TRC-20 交易查询暂不可用（链上服务波动），冻结状态与账户信息仍有效。请稍后重试，或上传 CSV 生成深度报告。",
             "bd_base": "基础分",
             "bd_addr_feat": "地址特征：{tag}",
             "bd_big_in": "大额转入{n}笔",
@@ -394,6 +396,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_normal_desc": "Điểm rủi ro {score}/100 (thấp), chưa bị đóng băng. Sử dụng bình thường, tránh giao dịch với địa chỉ đen.",
             "note_sample": "Dữ liệu từ TronGrid công khai (mẫu 100 GD USDT gần nhất, không đầy đủ). Tổng/đầu/cuối chỉ là cửa sổ mẫu; cần phân tích đầy đủ dùng báo cáo chuyên sâu (CSV).",
             "note_no_usdt": "Địa chỉ có 0 giao dịch USDT (TRC-20); tổng giao dịch trên chuỗi {n} (TRX/hợp đồng, không phải USDT). Công cụ chỉ thống kê USDT, 0 là trạng thái thật.",
+            "note_trc20_down": "Truy vấn giao dịch TRC-20 tạm không khả dụng (dịch vụ chuỗi dao động), trạng thái đóng băng và thông tin tài khoản vẫn hợp lệ. Vui lòng thử lại sau hoặc tải CSV để phân tích chuyên sâu.",
             "bd_base": "Điểm cơ bản",
             "bd_addr_feat": "Đặc điểm địa chỉ: {tag}",
             "bd_big_in": "Chuyển vào lớn {n} GD",
@@ -450,6 +453,7 @@ def i18n_texts(lang: str = "zh") -> dict:
             "plan_normal_desc": "Risk score {score}/100 (low), not frozen. Normal use; just avoid dealings with suspected black-market addresses.",
             "note_sample": "Data from TronGrid public API (sampled last 100 USDT, not full). Totals/first/last are sampled-window only; use CSV deep report for full analysis.",
             "note_no_usdt": "This address has 0 USDT (TRC-20) transactions; on-chain total {n} (TRX/contract interactions, not USDT). Tool only counts USDT; 0 is the true state.",
+            "note_trc20_down": "TRC-20 transaction query is temporarily unavailable (chain service fluctuation); freeze status and account info remain valid. Retry later or upload a CSV for a deep report.",
             "bd_base": "Base Score",
             "bd_addr_feat": "Address trait: {tag}",
             "bd_big_in": "Large inflow x{n}",
@@ -535,9 +539,16 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     # 2. TRC-20 记录（最近 100 笔 USDT；TronGrid 为权威 USDT 交易源）
     # 2026-09-01 教训：TE7jHEK 有 418 笔链上交易但全部是 TRX(contractType=2)，USDT=0 是真实状态
     # —— 不要用 TronScan transfers 回退（其 address 参数不按地址过滤，会混入无关交易）
-    trc20 = api.get_trc20(address, limit=100)
+    # 2026-09-05 审查：TronGrid 故障时降级返回空（附 note 说明），不整体 500
+    trc20 = []
+    trc20_error = False
+    try:
+        trc20 = api.get_trc20(address, limit=100)
+    except Exception:
+        trc20 = []
+        trc20_error = True  # 查询失败（区别于真 0 笔），note 单独提示
     chain_activity = {}
-    if not trc20:
+    if not trc20 and not trc20_error:
         # USDT 0 笔时，补充链上活动口径（TRX/TRC-10 等），解释"0 笔 USDT ≠ 地址无活动"
         chain_activity = get_tronscan_activity(address)
 
@@ -790,8 +801,10 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     tx_count = len(trc20)
 
     note = T["note_sample"]
-    # USDT 0 笔但链上有其他活动（TRX/TRC-10）——诚实说明，避免用户误以为系统漏数据
-    if not trc20 and chain_activity.get("total_tx"):
+    if trc20_error:
+        # TRC-20 查询失败（非真 0 笔）：覆盖 note 说明降级状态（2026-09-05 审查）
+        note = T["note_trc20_down"]
+    elif not trc20 and chain_activity.get("total_tx"):
         note = T["note_no_usdt"].format(n=chain_activity.get("total_tx"))
 
     return ReportResponse(
@@ -1018,7 +1031,8 @@ async def deep_report(file: UploadFile = File(...), address: str = Query(None, d
         raise HTTPException(status_code=400, detail="文件超过 10MB 限制")
     if not (file.filename or "").lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="请上传 .csv 文件（TronScan 导出格式）")
-    return _analyze_csv_bytes(raw, target_addr=address or "")
+    # CSV 解析/分析是同步重活：丢线程池执行，避免阻塞 async 事件循环（2026-09-05 审查发现）
+    return await run_in_threadpool(lambda: _analyze_csv_bytes(raw, target_addr=address or ""))
 
 
 # 静态文件挂载（放在 API 路由之后，避免覆盖 /api/*）
