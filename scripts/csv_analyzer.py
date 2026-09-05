@@ -15,7 +15,7 @@ import argparse
 from collections import defaultdict
 
 USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
-FREEZE_KW = ["UNFREEZE", "UNLOCK", "UNBANNED", "解封", "unfrozen", "BL"]
+FREEZE_KW = ["UNFREEZE", "UNLOCK", "UNBANNED", "解封", "unfrozen"]  # 2026-09-06: 移除 "BL"——symbol=BL 是 TRC-10 垃圾币名非冻结标记（SKILL v2.4 铁律 #2）
 
 
 def short_hash(tx):
@@ -156,12 +156,13 @@ class CsvAnalyzer:
                     self.scam[sym]['amt'] += val
             else:  # transaction
                 if ct == "TransferAssetContract":
-                    if sym == "BL":
-                        self.addr_tags[to]['freeze_n'] += 1
-                        self.addr_tags[to]['tags'].add("BL")
-                    elif sym:
+                    # 2026-09-06 修正（SKILL v2.4 铁律 #2）：symbol=BL 是 TRC-10 垃圾币名，不是 Tether 冻结标记——
+                    # 归入 trc10 垃圾币统计，绝不 ++freeze_n（曾致朋友案误判"BL 封条=冻结时间"）
+                    if sym:
                         self.trc10[sym]['cnt'] += 1
                         self.trc10[sym]['amt'] += val
+                    if sym == "BL":
+                        self.addr_tags[to]['tags'].add("垃圾币BL")  # 仅标记非冻结；freeze_n 不增加
                 elif ct == "DelegateResourceContract":
                     self.dlg['freeze_n'] += 1
                 elif ct == "UnDelegateResourceContract":
