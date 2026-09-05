@@ -56,6 +56,7 @@ footer a{color:var(--mut)}
         <strong>点击选择或拖拽 CSV 文件</strong>
         <span>支持 TronScan 导出：TRON-tokenTransfer-*.csv 或 TRON-transaction-*.csv（≤10MB）</span>
       </div>
+      <p style="font-size:12px;color:var(--mut);margin-top:8px;text-align:center">🔒 我们不会要求您提供私钥、助记词或登录凭证；CSV 仅用于本次分析，不做其他用途。</p>
       <input type="file" id="file" accept=".csv" style="display:none">
       <input type="text" id="addr" placeholder="目标地址（可选，默认取 CSV 中出现最多的地址）">
       <button class="btn" id="run" disabled>开始分析</button>
