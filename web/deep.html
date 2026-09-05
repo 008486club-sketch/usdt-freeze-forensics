@@ -125,7 +125,7 @@ footer a{color:var(--mut)}
           +'<div class="stat"><div class="k">USDT 交易</div><div class="v">'+d.usdt_n+'</div></div>'
           +'<div class="stat"><div class="k">转入 (USDT)</div><div class="v">'+(+d.usdt_in).toLocaleString(undefined,{maximumFractionDigits:0})+'</div></div>'
           +'<div class="stat"><div class="k">转出 (USDT)</div><div class="v">'+(+d.usdt_out).toLocaleString(undefined,{maximumFractionDigits:0})+'</div></div>'
-          +'<div class="stat"><div class="k">冻结标记</div><div class="v">'+d.marked_n+'</div></div>'
+          +'<div class="stat"><div class="k">能量委托</div><div class="v">'+d.dlg_n+'</div></div>'
           +'<div class="stat"><div class="k">诈骗代币</div><div class="v">'+d.scam_n+'</div></div>';
         preview.textContent=curMd;
         result.style.display='block';
