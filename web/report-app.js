@@ -22,7 +22,7 @@ zh: {
   tl4t:"地址被标记冻结",tl4d:"交易所收到链上风控警报，限制该地址提币和交易",
   tl5t:"冻结后",tl5d:"地址被冻结后的状态与后续交易由 API 实时生成",
   flowTitle:"资金流向（TOP 对手方）",legIn:"转入",legOut:"转出",
-  txTitle:"关键交易记录",txTime:"时间",txDir:"方向",txAmt:"金额 (USDT)",txCp:"对手方",txHash:"TxHash",txFull:"🔗 在 TronScan 查看完整交易记录（官方）",copyBtn:"复制",shareBtn:"分享报告",shareOk:"报告链接已复制，发给朋友即可打开查看",shareText:"USDT 冻结检测报告",printBtn:"打印 / 存为 PDF",
+  txTitle:"关键交易记录",txTime:"时间",txDir:"方向",txAmt:"金额 (USDT)",txCp:"对手方",txHash:"TxHash",txFull:"🔗 在 TronScan 查看完整交易记录（官方）",copyBtn:"复制",shareBtn:"分享报告",shareOk:"报告链接已复制，发给朋友即可打开查看",shareText:"这个 USDT 地址被冻结了吗？免费查官方冻结状态 · 冻结时间 · 风险（附检测报告）",printBtn:"打印 / 存为 PDF",
   dirIn:"转入",dirOut:"转出",flagWarn:"⚠ 异常",
   flagListT:"⚠ 异常交易提示（自动识别，仅供排查参考）",flagDisc:"以下交易由系统根据公开风险标签库与链上冻结状态自动匹配标出，仅供排查线索参考；不代表 Tether 或司法机关的官方认定，不构成法律意见。如需用于申诉，请自行核实并保留完整交易背景证据。",
   appealT:"申诉建议",
@@ -37,7 +37,10 @@ zh: {
   blUnk:"⚠️ 实时冻结状态暂时无法验证（链上服务波动）。结果基于本地索引与历史数据，请稍后重试。",
   blUnkIdx:"⚠️ 实时冻结状态暂时无法验证；本地链上索引显示该地址曾被加入黑名单：{at}。请稍后重试以官方实时状态为准。",
   evEv:"链上事件",evTxL:"证据交易",
-  balTrx:"TRX 余额",balUsdt:"USDT 余额"
+  balTrx:"TRX 余额",balUsdt:"USDT 余额",
+  shareHookT:"🔗 这份报告对你有用？分享给同样被冻结的朋友",
+  shareHookD:"工具完全免费 · 对方打开即可自查官方冻结状态、冻结时间与风险 · 帮一个是一个",
+  shareHookBtn:"📤 分享这份报告"
 },
 vi: {
   brand:"Kiểm tra đóng băng USDT",addrLabel:"Địa chỉ chẩn đoán",
@@ -51,7 +54,7 @@ vi: {
   tl4t:"Địa chỉ bị đóng băng",tl4d:"Sàn nhận cảnh báo rủi ro, hạn chế rút và giao dịch",
   tl5t:"Sau đóng băng",tl5d:"Trạng thái sau đóng băng được tạo tự động từ API",
   flowTitle:"Dòng tiền (TOP đối tác)",legIn:"Chuyển vào",legOut:"Chuyển ra",
-  txTitle:"Giao dịch quan trọng",txTime:"Thời gian",txDir:"Hướng",txAmt:"Số tiền (USDT)",txCp:"Đối tác",txHash:"TxHash",txFull:"🔗 Xem toàn bộ giao dịch trên TronScan (chính thức)",copyBtn:"Sao chép",shareBtn:"Chia sẻ báo cáo",shareOk:"Đã sao chép liên kết báo cáo",shareText:"Báo cáo kiểm tra đóng băng USDT",printBtn:"In / Lưu PDF",
+  txTitle:"Giao dịch quan trọng",txTime:"Thời gian",txDir:"Hướng",txAmt:"Số tiền (USDT)",txCp:"Đối tác",txHash:"TxHash",txFull:"🔗 Xem toàn bộ giao dịch trên TronScan (chính thức)",copyBtn:"Sao chép",shareBtn:"Chia sẻ báo cáo",shareOk:"Đã sao chép liên kết báo cáo",shareText:"Địa chỉ USDT này có bị đóng băng không? Kiểm tra miễn phí: trạng thái chính thức · thời gian đóng băng · rủi ro (kèm báo cáo)",printBtn:"In / Lưu PDF",
   dirIn:"Vào",dirOut:"Ra",flagWarn:"⚠ Bất thường",
   flagListT:"⚠ Giao dịch bất thường (tự động nhận diện, chỉ để tham khảo)",flagDisc:"Các giao dịch dưới đây được hệ thống tự động đối chiếu từ nhãn rủi ro công khai và trạng thái đóng băng trên chuỗi, chỉ mang tính tham khảo để điều tra; không phải kết luận chính thức của Tether hay cơ quan chức năng, không phải tư vấn pháp lý. Nếu dùng cho khiếu nại, vui lòng tự xác minh và lưu giữ bằng chứng đầy đủ.",
   appealT:"Gợi ý khiếu nại",
@@ -66,7 +69,10 @@ vi: {
   blUnk:"⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được (dịch vụ mạng lưới dao động). Kết quả dựa trên chỉ mục cục bộ và dữ liệu lịch sử, vui lòng thử lại sau.",
   blUnkIdx:"⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được; chỉ mục cục bộ cho thấy địa chỉ này từng bị thêm vào danh sách đen: {at}. Vui lòng thử lại sau theo trạng thái chính thức.",
   evEv:"Sự kiện trên chuỗi",evTxL:"Giao dịch bằng chứng",
-  balTrx:"Số dư TRX",balUsdt:"Số dư USDT"
+  balTrx:"Số dư TRX",balUsdt:"Số dư USDT",
+  shareHookT:"🔗 Báo cáo này hữu ích? Chia sẻ cho bạn bè cũng đang bị đóng băng",
+  shareHookD:"Công cụ hoàn toàn miễn phí · Người nhận mở là tự kiểm tra được trạng thái chính thức, thời gian đóng băng và rủi ro",
+  shareHookBtn:"📤 Chia sẻ báo cáo này"
 },
 en: {
   brand:"USDT Freeze Check",addrLabel:"Diagnosed Address",
@@ -80,7 +86,7 @@ en: {
   tl4t:"Address Flagged & Frozen",tl4d:"Exchange received on-chain risk alert, restricted withdrawals and trading",
   tl5t:"Post-freeze",tl5d:"Post-freeze status generated live from API",
   flowTitle:"Fund Flow (TOP Counterparties)",legIn:"Inflow",legOut:"Outflow",
-  txTitle:"Key Transactions",txTime:"Time",txDir:"Direction",txAmt:"Amount (USDT)",txCp:"Counterparty",txHash:"TxHash",txFull:"🔗 View full transaction history on TronScan (official)",copyBtn:"Copy",shareBtn:"Share report",shareOk:"Report link copied",shareText:"USDT Freeze Check Report",printBtn:"Print / Save as PDF",
+  txTitle:"Key Transactions",txTime:"Time",txDir:"Direction",txAmt:"Amount (USDT)",txCp:"Counterparty",txHash:"TxHash",txFull:"🔗 View full transaction history on TronScan (official)",copyBtn:"Copy",shareBtn:"Share report",shareOk:"Report link copied",shareText:"Is this USDT address frozen? Free check — official status · freeze time · risk (report included)",printBtn:"Print / Save as PDF",
   dirIn:"IN",dirOut:"OUT",flagWarn:"⚠ Flagged",
   flagListT:"⚠ Flagged transactions (auto-detected, for reference only)",flagDisc:"The transactions below were auto-matched by the system from public risk tags and on-chain freeze status for investigation reference only; they are not official determinations by Tether or any authority, and do not constitute legal advice. If used for an appeal, please verify independently and retain full evidence of the transaction context.",
   appealT:"Appeal Recommendations",
@@ -95,7 +101,10 @@ en: {
   blUnk:"⚠️ Real-time frozen status is temporarily unverifiable (chain service fluctuation). Results are based on the local index and historical data — please retry shortly.",
   blUnkIdx:"⚠️ Real-time frozen status is temporarily unverifiable; the local on-chain index shows this address was blacklisted: {at}. Please retry to confirm with the official real-time status.",
   evEv:"On-chain event",evTxL:"Evidence transaction",
-  balTrx:"TRX Balance",balUsdt:"USDT Balance"
+  balTrx:"TRX Balance",balUsdt:"USDT Balance",
+  shareHookT:"🔗 Found this report useful? Share it with friends whose USDT is frozen",
+  shareHookD:"Completely free · They can check official freeze status, exact time and risk themselves · Help one more person",
+  shareHookBtn:"📤 Share this report"
 }
 };
 
