@@ -3,6 +3,7 @@
 let currentLang = 'zh';
 let currentFrozen = null; /* 时间线标题状态：fetch 完成后 true/false；未加载 null → 显示"地址活动时间线" */
 let currentAddr = ''; /* 当前诊断地址：setLang 切换语言时重新请求后端（动态文案按语言返回） */
+let currentReportData = null; /* 最近一次报告完整数据（申诉材料组装用） */
 
 /* 空壳占位：禁止放入任何假数据（曾有 mock 导致用户看到别家地址信息，被麦总当场抓包） */
 const MOCK = { score: null, risk: 'low', counterparties: [], transactions: [] };
@@ -25,6 +26,7 @@ zh: {
   dirIn:"转入",dirOut:"转出",flagWarn:"⚠ 异常",
   flagListT:"⚠ 异常交易提示（自动识别，仅供排查参考）",flagDisc:"以下交易由系统根据公开风险标签库与链上冻结状态自动匹配标出，仅供排查线索参考；不代表 Tether 或司法机关的官方认定，不构成法律意见。如需用于申诉，请自行核实并保留完整交易背景证据。",
   appealT:"申诉建议",
+  appealGen:"📋 生成申诉说明（复制）",appealGenOk:"申诉说明已复制，粘贴到交易所申诉工单即可",
   a1t:"收集交易凭证",a1d:"整理与该地址关联交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。",
   a2t:"准备 KYC 材料",a2d:"更新交易所 KYC 信息，提供身份证明、地址证明、资金来源说明。确保与链上行为一致。",
   a3t:"提交申诉工单",a3d:"通过交易所官方渠道提交申诉，附上本报告和所有支持材料。保持耐心，跟进处理进度。",
@@ -49,6 +51,7 @@ vi: {
   dirIn:"Vào",dirOut:"Ra",flagWarn:"⚠ Bất thường",
   flagListT:"⚠ Giao dịch bất thường (tự động nhận diện, chỉ để tham khảo)",flagDisc:"Các giao dịch dưới đây được hệ thống tự động đối chiếu từ nhãn rủi ro công khai và trạng thái đóng băng trên chuỗi, chỉ mang tính tham khảo để điều tra; không phải kết luận chính thức của Tether hay cơ quan chức năng, không phải tư vấn pháp lý. Nếu dùng cho khiếu nại, vui lòng tự xác minh và lưu giữ bằng chứng đầy đủ.",
   appealT:"Gợi ý khiếu nại",
+  appealGen:"📋 Tạo văn bản khiếu nại (sao chép)",appealGenOk:"Đã sao chép văn bản khiếu nại, dán vào phiếu khiếu nại của sàn",
   a1t:"Thu thập chứng từ",a1d:"Tổng hợp đầy đủ giao dịch với đối tác liên quan: chat, hợp đồng, hóa đơn, vận đơn.",
   a2t:"Chuẩn bị KYC",a2d:"Cập nhật KYC sàn, cung cấp CMND, bằng địa chỉ, giải trình nguồn tiền.",
   a3t:"Gửi khiếu nại",a3d:"Gửi qua kênh chính thức của sàn, kèm báo cáo và tài liệu.",
@@ -73,6 +76,7 @@ en: {
   dirIn:"IN",dirOut:"OUT",flagWarn:"⚠ Flagged",
   flagListT:"⚠ Flagged transactions (auto-detected, for reference only)",flagDisc:"The transactions below were auto-matched by the system from public risk tags and on-chain freeze status for investigation reference only; they are not official determinations by Tether or any authority, and do not constitute legal advice. If used for an appeal, please verify independently and retain full evidence of the transaction context.",
   appealT:"Appeal Recommendations",
+  appealGen:"📋 Generate appeal text (copy)",appealGenOk:"Appeal text copied; paste into your exchange ticket",
   a1t:"Collect Transaction Records",a1d:"Gather complete records with related counterparties: chats, contracts, invoices, shipping docs to prove legitimacy.",
   a2t:"Prepare KYC Materials",a2d:"Update exchange KYC, provide ID, address proof, source of funds explanation.",
   a3t:"Submit Appeal Ticket",a3d:"File appeal through official exchange channel with this report and all supporting materials.",
@@ -148,6 +152,88 @@ function shareReport() {
   }
   fallbackCopy(url, function () {
     showToast(t.shareOk || 'Report link copied');
+  });
+}
+/* 生成申诉说明（纯文本，三语模板，基于当前报告真实数据组装；复制到剪贴板供用户粘贴到交易所工单） */
+function genAppeal() {
+  const d = currentReportData;
+  const addr = currentAddr || (MOCK.transactions && currentReportData && currentReportData.address) || '';
+  if (!d || !addr) return;
+  const t = I18N[currentLang] || {};
+  const lang = currentLang;
+  const flagRows = (d.transactions || []).filter(x => x.flag);
+  const flagTxt = flagRows.length
+    ? flagRows.map(x => '• ' + (x.time || '') + ' ' + (x.dir === 'in' ? 'IN' : 'OUT') + ' ' + (x.amt || 0).toLocaleString() + ' USDT ' + (x.cp || '') + ' — ' + (x.flagNote || '')).join('\n')
+    : (lang === 'zh' ? '（抽样窗口内无系统自动标记的异常交易）' : lang === 'vi' ? '（Không có giao dịch bất thường nào được đánh dấu trong cửa sổ mẫu）' : '(No auto-flagged abnormal transactions in the sampled window)');
+  const L = [];
+  if (lang === 'zh') {
+    L.push('USDT 冻结申诉说明');
+    L.push('（系统自动生成 · 基于 TRON 链上公开数据 · 仅供参考，不构成法律意见）');
+    L.push('');
+    L.push('一、基本信息');
+    L.push('诊断地址：' + addr);
+    L.push('冻结状态：' + (d.frozen ? '已冻结（USDT 合约 isBlackListed = true）' : '未冻结'));
+    if (d.frozen && d.frozenAt) L.push('确切冻结时间：' + d.frozenAt + '（链上 AddedBlackList 事件）');
+    if (d.created) L.push('地址创建时间：' + d.created);
+    L.push('风险评分：' + (d.score !== undefined ? d.score : '--') + '（' + (d.risk || '--') + '）');
+    if (d.tags && d.tags.length) L.push('标签：' + d.tags.join('、'));
+    L.push('');
+    L.push('二、抽样交易概况（TronGrid 最近 100 笔，非全量）');
+    if (d.txCount !== undefined) L.push('窗口内记录笔数：' + d.txCount);
+    L.push('注：如需全量流水与资金流向分析，请上传 TronScan CSV 生成深度报告。');
+    L.push('');
+    L.push('三、系统自动标记的异常交易（仅供参考）');
+    L.push(flagTxt);
+    L.push('');
+    L.push('四、说明');
+    L.push('1. 以上由系统根据公开风险标签库与链上冻结状态自动匹配，不代表 Tether 或司法机关的官方认定。');
+    L.push('2. 申诉前请自行核实并整理完整交易背景证据（合同/聊天记录/物流单据等），通过交易所官方渠道提交。');
+    L.push('3. 请勿相信任何付费解冻服务；付费解冻 = 诈骗。');
+    L.push('');
+    L.push('USDT 冻结检测 · 越智通AI决策助手');
+  } else if (lang === 'vi') {
+    L.push('VĂN BẢN KHIẾU NẠI ĐÓNG BĂNG USDT');
+    L.push('（Tự động tạo · Dựa trên dữ liệu công khai chuỗi TRON · Chỉ để tham khảo, không phải tư vấn pháp lý）');
+    L.push('');
+    L.push('1. Thông tin cơ bản');
+    L.push('Địa chỉ: ' + addr);
+    L.push('Trạng thái đóng băng: ' + (d.frozen ? 'Đã đóng băng (isBlackListed = true)' : 'Chưa đóng băng'));
+    if (d.frozen && d.frozenAt) L.push('Thời gian đóng băng: ' + d.frozenAt + ' (sự kiện trên chuỗi AddedBlackList)');
+    L.push('Điểm rủi ro: ' + (d.score !== undefined ? d.score : '--') + ' (' + (d.risk || '--') + ')');
+    L.push('');
+    L.push('2. Giao dịch mẫu (TronGrid 100 gần nhất, không đầy đủ)');
+    L.push('');
+    L.push('3. Giao dịch bất thường tự động đánh dấu:');
+    L.push(flagTxt);
+    L.push('');
+    L.push('4. Ghi chú: Không phải kết luận chính thức của Tether/cơ quan chức năng. Vui lòng tự xác minh bằng chứng và nộp qua kênh chính thức. Cảnh giác dịch vụ mở khóa trả phí (lừa đảo).');
+    L.push('');
+    L.push('USDT Freeze Check');
+  } else {
+    L.push('USDT FREEZE APPEAL STATEMENT');
+    L.push('(Auto-generated · Based on public TRON on-chain data · For reference only, not legal advice)');
+    L.push('');
+    L.push('1. Basic Information');
+    L.push('Address: ' + addr);
+    L.push('Freeze status: ' + (d.frozen ? 'Frozen (USDT contract isBlackListed = true)' : 'Not frozen'));
+    if (d.frozen && d.frozenAt) L.push('Exact freeze time: ' + d.frozenAt + ' (on-chain AddedBlackList event)');
+    if (d.created) L.push('Account created: ' + d.created);
+    L.push('Risk score: ' + (d.score !== undefined ? d.score : '--') + ' (' + (d.risk || '--') + ')');
+    if (d.tags && d.tags.length) L.push('Tags: ' + d.tags.join(', '));
+    L.push('');
+    L.push('2. Sampled Transactions (TronGrid recent 100, not exhaustive)');
+    if (d.txCount !== undefined) L.push('Records in window: ' + d.txCount);
+    L.push('Note: for full transaction history, upload a TronScan CSV to generate a deep report.');
+    L.push('');
+    L.push('3. Auto-flagged Transactions (for reference):');
+    L.push(flagTxt);
+    L.push('');
+    L.push('4. Notes: Auto-matched from public risk tags and on-chain freeze status; not an official determination by Tether or any authority. Verify evidence independently and submit via official channels. Beware of paid "unfreeze" scams.');
+    L.push('');
+    L.push('USDT Freeze Check');
+  }
+  fallbackCopy(L.join('\n'), function () {
+    showToast(t.appealGenOk || 'Appeal text copied');
   });
 }
 /* 复制当前诊断地址（reportAddr 展示的完整地址，非缩写）；空态/占位时不动作 */
@@ -406,6 +492,8 @@ function loadReport(addr) {
           txl.textContent = t6.txFull || '🔗 View full transaction history on TronScan (official)';
           txl.style.display = 'inline-block';
         }
+        /* 完整报告数据缓存（申诉材料组装用：created/frozenAt/txCount/tags 等） */
+        currentReportData = data;
         /* 复用 MOCK 为当前数据容器（渲染函数只读 MOCK 单一数据源；空壳=数据未加载态，勿删） */
         MOCK.counterparties = data.counterparties || [];
         MOCK.transactions = data.transactions || [];
