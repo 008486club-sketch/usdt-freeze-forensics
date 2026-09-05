@@ -34,6 +34,11 @@ def _cache_set(key, value, ttl):
         c = sqlite3.connect(CACHE_DB, timeout=3)
         c.execute("CREATE TABLE IF NOT EXISTS api_cache(key TEXT PRIMARY KEY, value TEXT, expires_at INTEGER)")
         c.execute("INSERT OR REPLACE INTO api_cache VALUES(?,?,?)", (key, value, int(time.time()) + ttl))
+        # 顺带清理过期行（低频小表，防长期膨胀；2026-09-05 审查）
+        try:
+            c.execute("DELETE FROM api_cache WHERE expires_at < ?", (int(time.time()),))
+        except Exception:
+            pass
         c.commit()
         c.close()
     except Exception:
