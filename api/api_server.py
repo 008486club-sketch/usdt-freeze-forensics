@@ -91,6 +91,7 @@ def get_frozen_at(address: str) -> str:
                 ts_ms = int(row[0])
                 return datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " UTC"
     except Exception:
+        # 冻结索引不可用（DB 未同步/损坏）→ 回退静态 FROZEN_AT，不阻塞查询
         pass
     # 2) 静态回退（索引未同步/未收录）
     fat = FROZEN_AT.get(address)
@@ -115,6 +116,7 @@ def cp_freeze_state(address: str):
                 ev, ts = row
                 return (ev == "AddedBlackList"), int(ts)
     except Exception:
+        # 索引不可用 → 返回 (None, None)（未知），不视为已解冻/已冻结
         pass
     return None, None
 
@@ -253,6 +255,7 @@ def ts_to_str(ts_ms: int) -> str:
     try:
         return datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
     except Exception:
+        # 时间戳解析失败（非数值/超范围）→ 返回占位 N/A，前端显示"--"
         return "N/A"
 
 
@@ -275,6 +278,7 @@ def get_tronscan_activity(address: str) -> dict:
             "trc20": data.get("trc20token_balances") or [],
         }
     except Exception:
+        # TronScan 辅助接口失败 → 返回空 dict（USDT 主数据不受影响）
         return {}
 
 
@@ -849,7 +853,7 @@ def _analyze_csv_bytes(raw: bytes, target_addr: str = "") -> dict:
         try:
             os.unlink(tmp_path)
         except OSError:
-            pass
+            pass  # 临时文件清理失败无害（系统临时目录会自回收）
 
     fmt = az.fmt  # 'token_transfer' | 'transaction'
     rows_n = len(az.rows)
