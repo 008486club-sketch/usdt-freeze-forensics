@@ -75,25 +75,48 @@ def _base58_to_hex20(addr: str) -> str:
     return raw[1:21].hex()
 
 
-def get_frozen_at(address: str) -> str:
-    """返回地址确切冻结时间（YYYY-MM-DD HH:MM:SS UTC）或空串。
-    顺序: SQLite 索引（链上 AddedBlackList E1）→ FROZEN_AT 回退（已知案例）"""
-    # 1) 链上事件索引（对所有用户）
+def freeze_evidence(address: str) -> dict:
+    """查询本地冻结事件索引（freeze_index.db，链上 AddedBlackList/RemovedBlackList 副本）。
+    返回证据字典：
+      found           首次 AddedBlackList 是否命中
+      first_added_ts_ms 首次冻结事件毫秒时间戳
+      first_added_time 首次冻结时间（YYYY-MM-DD HH:MM:SS UTC）
+      tx_id           首次冻结证据交易（64 hex，可跳 TronScan）
+      last_ev         该地址最后一条事件：AddedBlackList/RemovedBlackList/None（None=索引无记录）
+    """
+    out = {"found": False, "first_added_ts_ms": 0, "first_added_time": "", "tx_id": "", "last_ev": None}
     try:
         import sqlite3
         if os.path.exists(FREEZE_DB):
             hex20 = _base58_to_hex20(address)
             conn = sqlite3.connect(FREEZE_DB)
             row = conn.execute(
-                "SELECT block_ts FROM freeze_events WHERE addr_hex=? AND event_name='AddedBlackList' ORDER BY block_ts ASC LIMIT 1",
+                "SELECT block_ts, tx_id FROM freeze_events WHERE addr_hex=? AND event_name='AddedBlackList' ORDER BY block_ts ASC LIMIT 1",
                 (hex20,)).fetchone()
-            conn.close()
             if row:
-                ts_ms = int(row[0])
-                return datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " UTC"
+                out["found"] = True
+                out["first_added_ts_ms"] = int(row[0])
+                out["first_added_time"] = datetime.fromtimestamp(int(row[0]) / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " UTC"
+                out["tx_id"] = str(row[1] or "")
+            lrow = conn.execute(
+                "SELECT event_name FROM freeze_events WHERE addr_hex=? ORDER BY block_ts DESC LIMIT 1",
+                (hex20,)).fetchone()
+            if lrow:
+                out["last_ev"] = lrow[0]
+            conn.close()
     except Exception:
-        # 冻结索引不可用（DB 未同步/损坏）→ 回退静态 FROZEN_AT，不阻塞查询
+        # 冻结索引不可用（DB 未同步/损坏）→ 返回空证据，不阻塞查询
         pass
+    return out
+
+
+def get_frozen_at(address: str) -> str:
+    """返回地址确切冻结时间（YYYY-MM-DD HH:MM:SS UTC）或空串。
+    顺序: SQLite 索引（链上 AddedBlackList E1）→ FROZEN_AT 回退（已知案例）"""
+    # 1) 链上事件索引（对所有用户）
+    ev = freeze_evidence(address)
+    if ev["found"]:
+        return ev["first_added_time"]
     # 2) 静态回退（索引未同步/未收录）
     fat = FROZEN_AT.get(address)
     if fat:
@@ -173,8 +196,11 @@ def _tron_addr_hex(addr: str) -> str:
     return raw[1:-4].hex()
 
 
-def check_usdt_blacklist(address: str) -> bool:
-    """调用 USDT 合约 isBlackListed(address) 检测是否被 Tether 冻结（官方方法）"""
+def check_usdt_blacklist(address: str):
+    """调用 USDT 合约 isBlackListed(address) 检测是否被 Tether 冻结（官方方法）。
+    返回三态：True=冻结中 / False=官方确认未冻结 / None=实时状态未知（TronGrid 调用失败）。
+    2026-09-06 GPT 审查修复：原 except 返回 False 造成假阴性（冻结地址显示未冻结）——
+    调用方必须用 None 区分\"未知\"，失败时禁止报\"未冻结\"。"""
     try:
         body = _tron_addr_hex(address)
         param = body.rjust(64, "0")
@@ -198,8 +224,8 @@ def check_usdt_blacklist(address: str) -> bool:
             return raw.endswith("01") or int(raw, 16) == 1
         return False
     except Exception:
-        # TronGrid 调用失败（429/网络）→ 返回 False=未冻结。⚠️ 降级语义：网络失败可能造成假阴性（冻结显示未冻结），调用方无重试/未知态区分
-        return False
+        # TronGrid 调用失败（429/网络超时）→ None=实时状态未知（假阴性比未知更危险：用户会误以为未冻结而继续使用）
+        return None
 
 app = FastAPI(title="USDT Freeze Forensics API", version="1.0.0")
 
@@ -261,6 +287,11 @@ class ReportResponse(BaseModel):
     freezeStatus: Optional[dict] = None
     frozen: bool = False
     frozenAt: str = ""  # 确切冻结时间（AddedBlackList 链上事件；未冻结/未知为空），前端申诉材料取用
+    frozenAtTx: str = ""  # 冻结证据交易（AddedBlackList 事件的 64-hex tx_id，2026-09-06 证据链强化）
+    frozenUnknown: bool = False  # True = 实时 isBlackListed 查询失败（TronGrid 波动），不得显示"未冻结"
+    indexFrozen: bool = False  # frozenUnknown 时本地索引辅助：最后事件为 AddedBlackList
+    frozenIndexAt: str = ""  # indexFrozen 时索引显示的首次冻结时间
+    frozenIndexTx: str = ""  # indexFrozen 时索引显示的首次冻结证据交易
     dbUpdatedAt: str = ""  # 冻结索引已同步的最新链上事件时间（数据新鲜度展示）
     tags: List[str] = []
     timeline: List[TimelineItem] = []
@@ -365,6 +396,17 @@ def i18n_texts(lang: str = "zh") -> dict:
             "bd_cps": "对手方{n}个",
             "bd_new_addr": "新地址({n}天)",
             "bd_blacklisted": "地址在 Tether 黑名单中（已冻结）",
+            "note_bl_unknown": "⚠️ 实时冻结状态暂时无法验证（链上服务波动）。以下结果基于本地索引与历史数据，请稍后重试；也可上传 TronScan CSV 生成深度报告核对。",
+            "note_bl_unknown_idx": "⚠️ 实时冻结状态暂时无法验证（链上服务波动）。本地链上索引显示该地址曾于 {time} 被加入黑名单（AddedBlackList，索引同步至 {db}），请稍后重试以官方实时状态为准。",
+            "tr_in": "收到",
+            "tr_out": "转出",
+            "tr_vs": "对手方 {cp}",
+            "tl_causal_t": "时间先后 ≠ 因果关系",
+            "tl_causal_d": "以上事件仅按链上时间顺序排列。时间上的先后不代表因果关系，本报告不构成法律意见。",
+            "tl_unknown_t": "冻结状态待确认",
+            "tl_unknown_d": "实时合约状态暂无法验证（链上服务波动）。未发现本地索引冻结记录；请稍后重试，或上传 CSV 生成深度报告核对。",
+            "tl_unknown_idx_t": "冻结状态待确认（本地索引命中）",
+            "tl_unknown_idx_d": "实时合约状态暂无法验证（链上服务波动）。本地链上索引显示该地址曾于 {time} 被加入黑名单（AddedBlackList，索引同步至 {db}），请以官方实时状态为准。",
         },
         "vi": {
             "addr_created": "Tạo địa chỉ",
@@ -422,6 +464,17 @@ def i18n_texts(lang: str = "zh") -> dict:
             "bd_cps": "{n} đối tác",
             "bd_new_addr": "Địa chỉ mới ({n} ngày)",
             "bd_blacklisted": "Địa chỉ trong danh sách đen Tether (đã đóng băng)",
+            "note_bl_unknown": "⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được (dịch vụ mạng lưới dao động). Kết quả dưới đây dựa trên chỉ mục cục bộ và dữ liệu lịch sử, vui lòng thử lại sau; hoặc tải CSV từ TronScan để tạo báo cáo chuyên sâu đối chiếu.",
+            "note_bl_unknown_idx": "⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được (dịch vụ mạng lưới dao động). Chỉ mục cục bộ cho thấy địa chỉ này từng bị thêm vào danh sách đen lúc {time} (AddedBlackList, chỉ mục cập nhật đến {db}), vui lòng thử lại sau để xác nhận theo trạng thái chính thức.",
+            "tr_in": "Nhận",
+            "tr_out": "Gửi",
+            "tr_vs": "Đối tác {cp}",
+            "tl_causal_t": "Thứ tự thời gian ≠ quan hệ nhân quả",
+            "tl_causal_d": "Các sự kiện trên chỉ được sắp xếp theo thời gian trên chuỗi. Thứ tự thời gian không đồng nghĩa với quan hệ nhân quả, báo cáo này không phải là ý kiến pháp lý.",
+            "tl_unknown_t": "Trạng thái đóng băng cần xác nhận",
+            "tl_unknown_d": "Trạng thái hợp đồng thời gian thực tạm thời không xác minh được (dịch vụ mạng lưới dao động). Không tìm thấy ghi nhận đóng băng trong chỉ mục cục bộ; vui lòng thử lại sau, hoặc tải CSV để tạo báo cáo chuyên sâu đối chiếu.",
+            "tl_unknown_idx_t": "Trạng thái đóng băng cần xác nhận (chỉ mục cục bộ trúng)",
+            "tl_unknown_idx_d": "Trạng thái hợp đồng thời gian thực tạm thời không xác minh được (dịch vụ mạng lưới dao động). Chỉ mục cục bộ cho thấy địa chỉ này từng bị thêm vào danh sách đen lúc {time} (AddedBlackList, chỉ mục cập nhật đến {db}), vui lòng lấy trạng thái chính thức khi thử lại.",
         },
         "en": {
             "addr_created": "Address Created",
@@ -479,6 +532,17 @@ def i18n_texts(lang: str = "zh") -> dict:
             "bd_cps": "{n} counterparties",
             "bd_new_addr": "New address ({n} days)",
             "bd_blacklisted": "Address on Tether blacklist (frozen)",
+            "note_bl_unknown": "⚠️ Real-time frozen status is temporarily unverifiable (chain service fluctuation). Results below are based on the local index and historical data — please retry shortly; or upload a TronScan CSV for a deep cross-check report.",
+            "note_bl_unknown_idx": "⚠️ Real-time frozen status is temporarily unverifiable (chain service fluctuation). The local on-chain index shows this address was blacklisted at {time} (AddedBlackList, index synced to {db}) — please retry to confirm with the official real-time status.",
+            "tr_in": "Received",
+            "tr_out": "Sent",
+            "tr_vs": "Counterparty {cp}",
+            "tl_causal_t": "Time order ≠ causation",
+            "tl_causal_d": "Events above are ordered by on-chain time only. Chronological order does not imply causation; this report is not legal advice.",
+            "tl_unknown_t": "Frozen status pending",
+            "tl_unknown_d": "Real-time contract status is temporarily unverifiable (chain service fluctuation). No freeze record found in the local index — please retry shortly, or upload a CSV for a deep cross-check report.",
+            "tl_unknown_idx_t": "Frozen status pending (local index hit)",
+            "tl_unknown_idx_d": "Real-time contract status is temporarily unverifiable (chain service fluctuation). The local on-chain index shows this address was blacklisted at {time} (AddedBlackList, index synced to {db}) — please confirm with the official real-time status when retrying.",
         },
     }
     return T[lang]
@@ -546,8 +610,13 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     api = TronAPI(api_key=api_key)
     T = i18n_texts(lang)
 
-    # 0. 官方合约级黑名单检测（isBlackListed）
-    is_frozen = check_usdt_blacklist(address)
+    # 0. 官方合约级黑名单检测（isBlackListed）— 三态：True 冻结 / False 官方确认未冻结 / None 实时未知（TronGrid 失败）
+    # 2026-09-06 GPT 审查：网络失败不再静默当"未冻结"（假阴性）；frozenUnknown 由前端显示琥珀警示
+    _bl = check_usdt_blacklist(address)
+    bl_unknown = _bl is None
+    is_frozen = _bl is True
+    # 冻结证据（本地链上事件索引：首次 AddedBlackList 时间 + 证据交易 tx_id）——全查询共用
+    ev = freeze_evidence(address)
 
     # 1. 账户信息
     account = api.get_account(address)
@@ -719,11 +788,38 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     if is_frozen:
         fat_ts = get_frozen_at(address)
         if fat_ts:
+            # 7.4a 冻结前最近交易（抽样窗口内 ≤ 冻结时间；证据展示，禁止因果推断——铁律 #8）
+            pre_txs = []
+            if ev.get("found"):
+                pre_txs = [tx for tx in trc20 if tx.get("block_timestamp") and int(tx.get("block_timestamp", 0)) <= ev["first_added_ts_ms"]]
+                pre_txs.sort(key=lambda x: int(x.get("block_timestamp", 0)), reverse=True)
+            for tx in pre_txs[:5]:
+                val = int(tx.get("value", 0)) / USDT_DECIMALS
+                frm = str(tx.get("from", ""))
+                to = str(tx.get("to", ""))
+                is_in = to.lower() == address.lower()
+                cp_full = frm if is_in else to
+                cp_disp = (cp_full[:6] + "..." + cp_full[-4:]) if len(cp_full) > 10 else cp_full
+                txh = str(tx.get("transaction_id") or tx.get("hash") or "")
+                txh_disp = (txh[:12] + "..." + txh[-8:]) if len(txh) > 20 else txh
+                timeline.append(TimelineItem(
+                    time=ts_to_str(int(tx.get("block_timestamp", 0))) + " UTC",
+                    title=(T["tr_in"] if is_in else T["tr_out"]) + " {:,.2f} USDT".format(val),
+                    desc=T["tr_vs"].format(cp=cp_disp) + (" · " + txh_disp if txh_disp else ""),
+                    dot="blue",
+                ))
             timeline.append(TimelineItem(
                 time=fat_ts,
                 title=T["frozen_at_title"],
                 desc=T["frozen_at_desc"].format(time=fat_ts),
                 dot="red",
+            ))
+            # 7.4b 合规警示：时间先后 ≠ 因果（铁律 #8）
+            timeline.append(TimelineItem(
+                time="",
+                title=T["tl_causal_t"],
+                desc=T["tl_causal_d"],
+                dot="gray",
             ))
         else:
             timeline.append(TimelineItem(
@@ -731,6 +827,23 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
                 title=T["frozen_title"],
                 desc=T["frozen_desc"] + T["frozen_time_unknown"],
                 dot="red",
+            ))
+    elif bl_unknown:
+        # 7.5x 实时合约状态未知（TronGrid 波动）——不显示"未冻结"；本地索引辅助提示
+        idx_hit = ev.get("found") and ev.get("last_ev") == "AddedBlackList"
+        if idx_hit:
+            timeline.append(TimelineItem(
+                time=ev["first_added_time"],
+                title=T["tl_unknown_idx_t"],
+                desc=T["tl_unknown_idx_d"].format(time=ev["first_added_time"], db=get_freeze_index_updated() or "--"),
+                dot="gray",
+            ))
+        else:
+            timeline.append(TimelineItem(
+                time=T["cur_status"],
+                title=T["tl_unknown_t"],
+                desc=T["tl_unknown_d"],
+                dot="gray",
             ))
     else:
         # 7.5 未冻结但有风险
@@ -819,7 +932,13 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
     tx_count = len(trc20)
 
     note = T["note_sample"]
-    if trc20_error:
+    if bl_unknown:
+        # 实时冻结状态未知（最高优先级提示，2026-09-06）——不得让用户误读为"未冻结"
+        if ev.get("found") and ev.get("last_ev") == "AddedBlackList":
+            note = T["note_bl_unknown_idx"].format(time=ev["first_added_time"], db=get_freeze_index_updated() or "--")
+        else:
+            note = T["note_bl_unknown"]
+    elif trc20_error:
         # TRC-20 查询失败（非真 0 笔）：覆盖 note 说明降级状态（2026-09-05 审查）
         note = T["note_trc20_down"]
     elif not trc20 and chain_activity.get("total_tx"):
@@ -840,6 +959,11 @@ def build_report(address: str, api_key: str = None, lang: str = "zh") -> dict:
         },
         frozen=is_frozen,
         frozenAt=(get_frozen_at(address) if is_frozen else ""),
+        frozenAtTx=(ev.get("tx_id", "") if (is_frozen and ev.get("found")) else ""),
+        frozenUnknown=bl_unknown,
+        indexFrozen=bool(bl_unknown and ev.get("found") and ev.get("last_ev") == "AddedBlackList"),
+        frozenIndexAt=(ev["first_added_time"] if (bl_unknown and ev.get("found") and ev.get("last_ev") == "AddedBlackList") else ""),
+        frozenIndexTx=(ev.get("tx_id", "") if (bl_unknown and ev.get("found") and ev.get("last_ev") == "AddedBlackList") else ""),
         dbUpdatedAt=get_freeze_index_updated(),
         tags=[t for t in [address_tag(address)] if t],
         timeline=timeline,
@@ -858,7 +982,22 @@ def get_report(address: str = Query(..., description="TRON 地址"),
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
+    idx_n = 0
+    idx_upd = ""
+    try:
+        import sqlite3
+        if os.path.exists(FREEZE_DB):
+            conn = sqlite3.connect(FREEZE_DB)
+            row = conn.execute("SELECT COUNT(*), MAX(block_ts) FROM freeze_events").fetchone()
+            conn.close()
+            if row and row[0]:
+                idx_n = int(row[0])
+                idx_upd = datetime.fromtimestamp(int(row[1]) / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M") + " UTC"
+    except Exception:
+        pass
+    # index_records/index_updated：双节点数据版本/条数/同步时间（2026-09-06 GPT 建议，运维对比广州 vs 雅加达）
+    return {"status": "ok", "time": datetime.now(timezone.utc).isoformat(),
+            "index_records": idx_n, "index_updated": idx_upd}
 
 
 # ===== 深度报告（CSV 全量分析，2026-09-01 上线：免费查询 + 上传 CSV 出深度报告） =====
