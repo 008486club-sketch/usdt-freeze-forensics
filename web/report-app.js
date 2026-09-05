@@ -12,7 +12,7 @@ const MOCK = { score: null, risk: 'low', counterparties: [], transactions: [] };
 const REPORT_I18N = {
 zh: {
   brand:"USDT 冻结检测",addrLabel:"诊断地址",
-  metaCreated:"创建时间",metaTx:"抽样记录",metaFirst:"抽样首笔",metaLast:"抽样末笔",metaTxSuffix:"笔（TronGrid 最近100笔）",noteSample:"数据来自 TronGrid 最近100笔抽样（非全量）；交易总数/首笔/末笔均为抽样窗口数据；如需全量分析请使用深度报告",loading:"数据加载中…",emptyFlow:"暂无对手方数据",emptyTx:"暂无交易记录",
+  metaCreated:"创建时间",metaTx:"抽样记录",metaFirst:"抽样首笔",metaLast:"抽样末笔",metaTxSuffix:"笔（TronGrid 最近100笔）",metaDb:"冻结索引同步至",riskSub:"分析推断 · 非 Tether 官方结论",noteSample:"数据来自 TronGrid 最近100笔抽样（非全量）；交易总数/首笔/末笔均为抽样窗口数据；如需全量分析请使用深度报告",loading:"数据加载中…",emptyFlow:"暂无对手方数据",emptyTx:"暂无交易记录",
   riskLabel:"风险评分",verdictHigh:"⚠️ 高风险 — 建议深度分析",verdictMid:"⚡ 中风险 — 建议关注",verdictLow:"✅ 低风险",
   riskBannerFrozen:"🔒 该地址已被 Tether 冻结（高风险）",riskBannerHigh:"⚠️ 高风险地址 — 建议深度排查",riskBannerMid:"⚡ 中风险地址 — 建议关注",riskBannerLow:"✅ 低风险地址",bldzen:"第三方复核:",
   tlTitle:"冻结时间线",tlTitleFree:"地址活动时间线",planTitle:"行动方案",bdTitle:"评分依据",
@@ -37,7 +37,7 @@ zh: {
 },
 vi: {
   brand:"Kiểm tra đóng băng USDT",addrLabel:"Địa chỉ chẩn đoán",
-  metaCreated:"Tạo",metaTx:"GD mẫu",metaFirst:"Đầu (mẫu)",metaLast:"Cuối (mẫu)",metaTxSuffix:" GD (TronGrid 100 GD gần nhất)",noteSample:"Dữ liệu từ TronGrid lấy mẫu 100 GD gần nhất (không đầy đủ); tổng/đầu/cuối chỉ là cửa sổ mẫu; cần phân tích đầy đủ vui lòng dùng báo cáo chuyên sâu",loading:"Đang tải…",emptyFlow:"Chưa có dữ liệu đối tác",emptyTx:"Chưa có giao dịch",
+  metaCreated:"Tạo",metaTx:"GD mẫu",metaFirst:"Đầu (mẫu)",metaLast:"Cuối (mẫu)",metaTxSuffix:" GD (TronGrid 100 GD gần nhất)",metaDb:"Chỉ mục đóng băng đến",riskSub:"Phân tích suy luận · Không phải kết luận chính thức của Tether",noteSample:"Dữ liệu từ TronGrid lấy mẫu 100 GD gần nhất (không đầy đủ); tổng/đầu/cuối chỉ là cửa sổ mẫu; cần phân tích đầy đủ vui lòng dùng báo cáo chuyên sâu",loading:"Đang tải…",emptyFlow:"Chưa có dữ liệu đối tác",emptyTx:"Chưa có giao dịch",
   riskLabel:"Điểm rủi ro",verdictHigh:"⚠️ Rủi ro cao — Nên phân tích sâu",verdictMid:"⚡ Rủi ro trung bình",verdictLow:"✅ Rủi ro thấp",
   riskBannerFrozen:"🔒 Địa chỉ đã bị Tether đóng băng (rủi ro cao)",riskBannerHigh:"⚠️ Địa chỉ rủi ro cao — nên kiểm tra sâu",riskBannerMid:"⚡ Rủi ro trung bình — nên theo dõi",riskBannerLow:"✅ Rủi ro thấp",bldzen:"Kiểm tra chéo bên thứ ba:",
   tlTitle:"Dòng thời gian đóng băng",tlTitleFree:"Dòng thời gian địa chỉ",planTitle:"Kế hoạch hành động",bdTitle:"Cơ sở chấm điểm",
@@ -62,7 +62,7 @@ vi: {
 },
 en: {
   brand:"USDT Freeze Check",addrLabel:"Diagnosed Address",
-  metaCreated:"Created",metaTx:"Sampled TXs",metaFirst:"First (sampled)",metaLast:"Last (sampled)",metaTxSuffix:" (TronGrid recent 100)",noteSample:"Data from TronGrid sampling of last 100 TXs (not complete); totals/first/last are sampled window only; for full analysis use deep report",loading:"Loading…",emptyFlow:"No counterparty data",emptyTx:"No transactions",
+  metaCreated:"Created",metaTx:"Sampled TXs",metaFirst:"First (sampled)",metaLast:"Last (sampled)",metaTxSuffix:" (TronGrid recent 100)",metaDb:"Freeze index synced to",riskSub:"Risk analysis · Not an official Tether determination",noteSample:"Data from TronGrid sampling of last 100 TXs (not complete); totals/first/last are sampled window only; for full analysis use deep report",loading:"Loading…",emptyFlow:"No counterparty data",emptyTx:"No transactions",
   riskLabel:"Risk Score",verdictHigh:"⚠️ High Risk — Deep analysis recommended",verdictMid:"⚡ Medium Risk — Monitor",verdictLow:"✅ Low Risk",
   riskBannerFrozen:"🔒 Address frozen by Tether (high risk)",riskBannerHigh:"⚠️ High-risk address — deep check recommended",riskBannerMid:"⚡ Medium risk — monitor",riskBannerLow:"✅ Low risk",bldzen:"Third-party cross-check:",
   tlTitle:"Freeze Timeline",tlTitleFree:"Address Timeline",planTitle:"Action Plan",bdTitle:"Score Basis",
@@ -188,7 +188,7 @@ function genAppeal() {
     L.push('四、说明');
     L.push('1. 以上由系统根据公开风险标签库与链上冻结状态自动匹配，不代表 Tether 或司法机关的官方认定。');
     L.push('2. 申诉前请自行核实并整理完整交易背景证据（合同/聊天记录/物流单据等），通过交易所官方渠道提交。');
-    L.push('3. 请勿相信任何付费解冻服务；付费解冻 = 诈骗。');
+    L.push('3. 请勿相信任何付费解冻服务；本工具不承诺任何解冻结果，是否解冻取决于发行方及具体情况，声称付费即可保证解冻的多为诈骗。');
     L.push('');
     L.push('USDT Freeze Check');
   } else if (lang === 'vi') {
@@ -475,6 +475,8 @@ function loadReport(addr) {
           document.getElementById('reportAddr').textContent = addr;
           const mc = document.querySelector('[data-meta-created]');
           if (mc) mc.textContent = data.created;
+          const mdb = document.querySelector('[data-meta-db]');
+          if (mdb) mdb.textContent = data.dbUpdatedAt || '--';
           const mtx = document.querySelector('[data-meta-tx]');
           if (mtx) mtx.textContent = (data.txCount || 0).toLocaleString();
           if (data.transactions && data.transactions.length) {
