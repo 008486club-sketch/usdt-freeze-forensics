@@ -988,7 +988,7 @@ def _analyze_csv_bytes(raw: bytes, target_addr: str = "") -> dict:
     a("")
     a("---")
     a("")
-    a("*USDT 冻结检测 · 越智通AI决策助手 · 阿智*")
+    a("*USDT Freeze Check*")
 
     return {
         "ok": True,
