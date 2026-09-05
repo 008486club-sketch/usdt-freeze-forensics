@@ -23,6 +23,7 @@ zh: {
   flowTitle:"资金流向（TOP 对手方）",legIn:"转入",legOut:"转出",
   txTitle:"关键交易记录",txTime:"时间",txDir:"方向",txAmt:"金额 (USDT)",txCp:"对手方",txHash:"TxHash",
   dirIn:"转入",dirOut:"转出",flagWarn:"⚠ 异常",
+  flagListT:"⚠ 异常交易提示（自动识别，仅供排查参考）",flagDisc:"以下交易由系统根据公开风险标签库与链上冻结状态自动匹配标出，仅供排查线索参考；不代表 Tether 或司法机关的官方认定，不构成法律意见。如需用于申诉，请自行核实并保留完整交易背景证据。",
   appealT:"申诉建议",
   a1t:"收集交易凭证",a1d:"整理与该地址关联交易的完整记录：聊天记录、合同、发票、物流单据，证明交易背景真实合法。",
   a2t:"准备 KYC 材料",a2d:"更新交易所 KYC 信息，提供身份证明、地址证明、资金来源说明。确保与链上行为一致。",
@@ -46,6 +47,7 @@ vi: {
   flowTitle:"Dòng tiền (TOP đối tác)",legIn:"Chuyển vào",legOut:"Chuyển ra",
   txTitle:"Giao dịch quan trọng",txTime:"Thời gian",txDir:"Hướng",txAmt:"Số tiền (USDT)",txCp:"Đối tác",txHash:"TxHash",
   dirIn:"Vào",dirOut:"Ra",flagWarn:"⚠ Bất thường",
+  flagListT:"⚠ Giao dịch bất thường (tự động nhận diện, chỉ để tham khảo)",flagDisc:"Các giao dịch dưới đây được hệ thống tự động đối chiếu từ nhãn rủi ro công khai và trạng thái đóng băng trên chuỗi, chỉ mang tính tham khảo để điều tra; không phải kết luận chính thức của Tether hay cơ quan chức năng, không phải tư vấn pháp lý. Nếu dùng cho khiếu nại, vui lòng tự xác minh và lưu giữ bằng chứng đầy đủ.",
   appealT:"Gợi ý khiếu nại",
   a1t:"Thu thập chứng từ",a1d:"Tổng hợp đầy đủ giao dịch với đối tác liên quan: chat, hợp đồng, hóa đơn, vận đơn.",
   a2t:"Chuẩn bị KYC",a2d:"Cập nhật KYC sàn, cung cấp CMND, bằng địa chỉ, giải trình nguồn tiền.",
@@ -69,6 +71,7 @@ en: {
   flowTitle:"Fund Flow (TOP Counterparties)",legIn:"Inflow",legOut:"Outflow",
   txTitle:"Key Transactions",txTime:"Time",txDir:"Direction",txAmt:"Amount (USDT)",txCp:"Counterparty",txHash:"TxHash",
   dirIn:"IN",dirOut:"OUT",flagWarn:"⚠ Flagged",
+  flagListT:"⚠ Flagged transactions (auto-detected, for reference only)",flagDisc:"The transactions below were auto-matched by the system from public risk tags and on-chain freeze status for investigation reference only; they are not official determinations by Tether or any authority, and do not constitute legal advice. If used for an appeal, please verify independently and retain full evidence of the transaction context.",
   appealT:"Appeal Recommendations",
   a1t:"Collect Transaction Records",a1d:"Gather complete records with related counterparties: chats, contracts, invoices, shipping docs to prove legitimacy.",
   a2t:"Prepare KYC Materials",a2d:"Update exchange KYC, provide ID, address proof, source of funds explanation.",
@@ -178,6 +181,8 @@ function renderFlow() {
 function renderTx() {
   const body = document.getElementById('txBody');
   const t = I18N[currentLang];
+  /* 异常交易提示卡（独立拎出 flagged 交易 + 无责声明；无 flag 时隐藏） */
+  fillFlagBox();
   if (!MOCK.transactions || MOCK.transactions.length === 0) {
     body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:16px">${t.emptyTx || '暂无交易记录'}</td></tr>`;
     return;
@@ -195,6 +200,35 @@ function renderTx() {
       <td class="tx-hash hide-mobile">${tx.hash}</td>
     </tr>`;
   }).join('');
+}
+
+/* 异常交易提示卡：从已加载交易中独立拎出 flagged 交易，附无责声明。
+   数据 = 后端交易级 flag/flagNote（对手方高危标签或被冻结），非用户/链上任意字符串；隐藏逻辑由 display 控制。 */
+function fillFlagBox() {
+  const box = document.getElementById('flagBox');
+  if (!box) return;
+  const t = I18N[currentLang] || {};
+  const flagged = (MOCK.transactions || []).filter(x => x.flag);
+  if (!flagged.length) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const rows = flagged.map(tx => {
+    const dirText = tx.dir === 'in' ? (t.dirIn || 'IN') : (t.dirOut || 'OUT');
+    return `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed rgba(245,158,11,.3);flex-wrap:wrap;align-items:baseline">
+      <span style="color:#f59e0b;font-weight:700">⚠</span>
+      <span style="color:#9ca3af;font-size:12px">${tx.time || ''}</span>
+      <span class="tx-dir ${tx.dir === 'in' ? 'in' : 'out'}">${dirText}</span>
+      <span style="font-weight:600">${(tx.amt || 0).toLocaleString()} USDT</span>
+      <span class="tx-addr">${tx.cp || ''}</span>
+      <span style="color:var(--red)">${(tx.flagNote || '').replace(/"/g, '&quot;')}</span>
+    </div>`;
+  }).join('');
+  box.style.display = 'block';
+  box.innerHTML = `<div style="color:#f59e0b;font-weight:700;margin-bottom:6px">${t.flagListT || '⚠ 异常交易提示（自动识别，仅供排查参考）'}</div>
+    ${rows}
+    <div style="margin-top:8px;color:#9ca3af;font-size:12px">${t.flagDisc || ''}</div>`;
 }
 
 function renderTimeline(items) {
