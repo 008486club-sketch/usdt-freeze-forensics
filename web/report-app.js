@@ -36,7 +36,8 @@ zh: {
   toastCopy:"地址已复制到剪贴板",
   blUnk:"⚠️ 实时冻结状态暂时无法验证（链上服务波动）。结果基于本地索引与历史数据，请稍后重试。",
   blUnkIdx:"⚠️ 实时冻结状态暂时无法验证；本地链上索引显示该地址曾被加入黑名单：{at}。请稍后重试以官方实时状态为准。",
-  evEv:"链上事件",evTxL:"证据交易"
+  evEv:"链上事件",evTxL:"证据交易",
+  balTrx:"TRX 余额",balUsdt:"USDT 余额"
 },
 vi: {
   brand:"Kiểm tra đóng băng USDT",addrLabel:"Địa chỉ chẩn đoán",
@@ -64,7 +65,8 @@ vi: {
   toastCopy:"Đã sao chép địa chỉ",
   blUnk:"⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được (dịch vụ mạng lưới dao động). Kết quả dựa trên chỉ mục cục bộ và dữ liệu lịch sử, vui lòng thử lại sau.",
   blUnkIdx:"⚠️ Trạng thái đóng băng theo thời gian thực tạm thời không xác minh được; chỉ mục cục bộ cho thấy địa chỉ này từng bị thêm vào danh sách đen: {at}. Vui lòng thử lại sau theo trạng thái chính thức.",
-  evEv:"Sự kiện trên chuỗi",evTxL:"Giao dịch bằng chứng"
+  evEv:"Sự kiện trên chuỗi",evTxL:"Giao dịch bằng chứng",
+  balTrx:"Số dư TRX",balUsdt:"Số dư USDT"
 },
 en: {
   brand:"USDT Freeze Check",addrLabel:"Diagnosed Address",
@@ -92,7 +94,8 @@ en: {
   toastCopy:"Address copied to clipboard",
   blUnk:"⚠️ Real-time frozen status is temporarily unverifiable (chain service fluctuation). Results are based on the local index and historical data — please retry shortly.",
   blUnkIdx:"⚠️ Real-time frozen status is temporarily unverifiable; the local on-chain index shows this address was blacklisted: {at}. Please retry to confirm with the official real-time status.",
-  evEv:"On-chain event",evTxL:"Evidence transaction"
+  evEv:"On-chain event",evTxL:"Evidence transaction",
+  balTrx:"TRX Balance",balUsdt:"USDT Balance"
 }
 };
 
@@ -482,6 +485,11 @@ function loadReport(addr) {
         renderBreakdown(data.score, data.scoreBreakdown || []);
         if (data.created) {
           document.getElementById('reportAddr').textContent = addr;
+          /* 当前余额（2026-09-06 用户需求）：TRX + USDT，冻结地址 USDT 为冻结存量仅展示 */
+          const btrx = document.querySelector('[data-meta-trx]');
+          if (btrx) btrx.textContent = (data.trxBalance === undefined ? 0 : data.trxBalance).toLocaleString(undefined, {maximumFractionDigits: 2}) + ' TRX';
+          const busdt = document.querySelector('[data-meta-usdt]');
+          if (busdt) busdt.textContent = (data.usdtBalance === undefined ? 0 : data.usdtBalance).toLocaleString(undefined, {maximumFractionDigits: 2}) + ' USDT';
           const mc = document.querySelector('[data-meta-created]');
           if (mc) mc.textContent = data.created;
           const mdb = document.querySelector('[data-meta-db]');
