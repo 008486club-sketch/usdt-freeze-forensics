@@ -17,10 +17,14 @@ deploy_backend() {
   echo "--- 后端 → 广州 ---"
   python3 "$PSSH" -f "$LOCAL_REPO/api/api_server.py" /opt/usdt-forensics/api_server.py
   python3 "$PSSH" -f "$LOCAL_REPO/scripts/tron_api.py" /opt/usdt-forensics/tron_api.py
+  python3 "$PSSH" -f "$LOCAL_REPO/scripts/csv_analyzer.py" /opt/usdt-forensics/csv_analyzer.py
+  python3 "$PSSH" -f "$LOCAL_REPO/scripts/report_engine.py" /opt/usdt-forensics/report_engine.py
   python3 "$PSSH" "systemctl restart usdt-forensics && sleep 2 && systemctl is-active usdt-forensics"
   echo "--- 后端 → 雅加达 ---"
   python3 "$PSSH" -h "$JAKARTA_HOST" -f "$LOCAL_REPO/api/api_server.py" /opt/usdt-forensics/api_server.py
   python3 "$PSSH" -h "$JAKARTA_HOST" -f "$LOCAL_REPO/scripts/tron_api.py" /opt/usdt-forensics/tron_api.py
+  python3 "$PSSH" -h "$JAKARTA_HOST" -f "$LOCAL_REPO/scripts/csv_analyzer.py" /opt/usdt-forensics/csv_analyzer.py
+  python3 "$PSSH" -h "$JAKARTA_HOST" -f "$LOCAL_REPO/scripts/report_engine.py" /opt/usdt-forensics/report_engine.py
   python3 "$PSSH" -h "$JAKARTA_HOST" "systemctl restart usdt-forensics && sleep 2 && systemctl is-active usdt-forensics"
 }
 
