@@ -44,18 +44,22 @@ class TronAPI:
         self.session.headers['Accept'] = 'application/json'
         self.session.timeout = 30
 
-    def _get(self, endpoint, params=None):
+    def _get(self, endpoint, params=None, allow_400=False):
+        """GET 封装。allow_400=True 时 400（地址无效/链上不存在）返回 {} 而非抛异常，
+        由调用方转为友好错误（get_account → {'error': ...} → HTTP 404）。"""
         url = f'{self.base_url}{endpoint}'
         def do_request():
             resp = self.session.get(url, params=params or {})
+            if allow_400 and resp.status_code == 400:
+                return {}
             resp.raise_for_status()
             return resp.json()
         return retry_with_backoff(do_request)
 
     def get_account(self, address):
         """Get account info (create time, balance, permissions)"""
-        data = self._get(f'/v1/accounts/{address}')
-        if not data.get('data'):
+        data = self._get(f'/v1/accounts/{address}', allow_400=True)
+        if not data or not data.get('data'):
             return {'error': 'Account not found', 'address': address}
         return data['data'][0]
 
