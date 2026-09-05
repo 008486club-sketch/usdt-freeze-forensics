@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>USDT 冻结检测 | 诊断报告</title>
+<title>USDT 冻结检测 | 诊断报告 - Freeze Check</title>
+<meta name="description" content="USDT 冻结诊断报告：地址冻结状态、确切冻结时间、风险评分、异常交易与资金流向。基于 TRON 链上公开数据，免费使用。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="USDT Freeze Check">
+<meta property="og:title" content="USDT 冻结检测报告 | Freeze Check">
+<meta property="og:description" content="查看地址冻结状态、确切冻结时间、风险评分与异常交易提示。基于 TRON 链上公开数据。">
+<meta property="og:image" content="https://yuezhitong.com/usdt-check/og-cover.png">
+<meta property="og:url" content="https://yuezhitong.com/usdt-check/report.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://yuezhitong.com/usdt-check/report.html">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--blue:#1a3a6b;--bl:#2563eb;--bbg:#f0f4fa;--red:#dc2626;--grn:#16a34a;--ylw:#eab308;--g50:#f9fafb;--g100:#f3f4f6;--g200:#e5e7eb;--g500:#6b7280;--g700:#374151;--g900:#111827;--r:12px;--sh:0 2px 12px rgba(0,0,0,.08)}
@@ -182,7 +191,7 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 <div class="score-card" id="scoreCard">
 <div class="risk-banner" id="riskBanner"></div>
 <div class="score-addr">
-  <h2 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span data-i18n="addrLabel">诊断地址</span><button onclick="copyAddr()" title="Copy address" style="font-size:12px;padding:3px 10px;border:1px solid var(--g200);background:#fff;border-radius:6px;cursor:pointer;color:var(--g700)">📋 <span data-i18n="copyBtn">复制</span></button></h2>
+  <h2 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span data-i18n="addrLabel">诊断地址</span><button onclick="copyAddr()" title="Copy address" style="font-size:12px;padding:3px 10px;border:1px solid var(--g200);background:#fff;border-radius:6px;cursor:pointer;color:var(--g700)">📋 <span data-i18n="copyBtn">复制</span></button><button onclick="shareReport()" data-ua="share_click" title="Share report" style="font-size:12px;padding:3px 10px;border:1px solid var(--g200);background:#fff;border-radius:6px;cursor:pointer;color:var(--g700)">🔗 <span data-i18n="shareBtn">分享报告</span></button></h2>
   <div class="addr" id="reportAddr">--</div>
   <div class="meta">
     <span><span data-i18n="metaCreated">创建时间</span>：<span data-meta-created>--</span></span>
@@ -291,6 +300,6 @@ a{color:var(--bl);text-decoration:none}a:hover{text-decoration:underline}
 <div class="toast" id="toast"></div>
 <script src="i18n.js?v=20260901n"></script>
 <script src="collect.js" defer></script>
-<script src="report-app.20260901u.js" defer></script>
+<script src="report-app.20260901v.js" defer></script>
 </body>
 </html>
