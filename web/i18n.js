@@ -2,7 +2,7 @@
 const I18N = {
 zh: {
   brand:"USDT 冻结检测",
-  heroBadge:"TRON 链上分析 · 3 分钟出结果",
+  heroBadge:"TRON 链上分析 · 秒级出结果",
   heroTitle:"你的 USDT 为什么被冻结？<br>输入地址，查明原因",
   heroSub:"立即检查 Tether 官方冻结状态、确切冻结时间、风险评分与资金流分析。完全免费，可上传 CSV 生成全量深度报告。",
   ft1:"✓ 官方冻结状态",ft2:"✓ 确切冻结时间",ft3:"✓ 风险评分",ft4:"✓ 资金流分析",
@@ -37,7 +37,7 @@ zh: {
 },
 vi: {
   brand:"Kiểm tra đóng băng USDT",
-  heroBadge:"Phân tích TRON on-chain · Kết quả trong 3 phút",
+  heroBadge:"Phân tích TRON on-chain · Kết quả trong vài giây",
   heroTitle:"USDT của bạn bị đóng băng?<br>Nhập địa chỉ để tìm hiểu lý do",
   heroSub:"Kiểm tra ngay trạng thái đóng băng chính thức của Tether, thời gian đóng băng chính xác, điểm rủi ro và phân tích dòng tiền. Hoàn toàn miễn phí, tải CSV để có báo cáo sâu.",
   ft1:"✓ Trạng thái đóng băng chính thức",ft2:"✓ Thời gian đóng băng chính xác",ft3:"✓ Điểm rủi ro",ft4:"✓ Phân tích dòng tiền",
@@ -72,7 +72,7 @@ vi: {
 },
 en: {
   brand:"USDT Freeze Check",
-  heroBadge:"TRON On-chain Analysis · Results in 3 Minutes",
+  heroBadge:"TRON On-chain Analysis · Results in Seconds",
   heroTitle:"Why is your USDT frozen?<br>Enter an address to find out",
   heroSub:"Instantly check official Tether freeze status, exact freeze time, risk score and fund flow analysis. Completely free; upload CSV for a full deep report.",
   ft1:"✓ Official freeze status",ft2:"✓ Exact freeze time",ft3:"✓ Risk score",ft4:"✓ Fund flow analysis",
